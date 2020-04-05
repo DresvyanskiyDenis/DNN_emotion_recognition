@@ -29,7 +29,7 @@ def extract_face(image):
         return False
 
 
-def extract_faces_and_labels_for_video(path_to_video, path_to_extracted_frames, path_to_timesteps, new_image_size):
+def extract_faces_and_labels_for_video(path_to_video, path_to_extracted_frames, path_to_timesteps, new_image_size, path_to_existing_timesteps=''):
     '''
     This function takes video from path_to_video and extract faces from each frame of video with timesteps
 
@@ -64,11 +64,13 @@ def extract_faces_and_labels_for_video(path_to_video, path_to_extracted_frames, 
             timesteps_dataframe.iloc[iter, 1]=filename
         timestep+=step
         iter+=1
-    timesteps_dataframe.to_csv(path_to_timesteps+path_to_video.split('\\')[-1].split('.')[0]+'.csv')
+    if path_to_existing_timesteps!='':
+        tmp_timesteps=pd.read_csv(path_to_existing_timesteps+path_to_video.split('\\')[-1].split('.')[0]+'.csv', sep=';')
+        timesteps_dataframe['timestep']=tmp_timesteps['time in seconds']
+    timesteps_dataframe.to_csv(path_to_timesteps+path_to_video.split('\\')[-1].split('.')[0]+'.csv', index=False)
 
-def preprocess_all_database(path_to_videos, path_to_extracted_frames, path_to_timesteps, new_image_size):
+def preprocess_all_database(path_to_videos, path_to_extracted_frames, path_to_timesteps, new_image_size, path_to_existing_timesteps):
     '''
-
     :param path_to_videos: path to folder with videos
     :param path_to_extracted_frames: path to folder, where extracted images should store
     :param path_to_timesteps: path to folder, where timesteps of extracted images should store
@@ -83,16 +85,23 @@ def preprocess_all_database(path_to_videos, path_to_extracted_frames, path_to_ti
         extract_faces_and_labels_for_video(path_to_video=path_to_videos+file,
                                            path_to_extracted_frames=path_to_extracted_frames+file.split('.')[0]+'\\',
                                            path_to_timesteps=path_to_timesteps,
-                                           new_image_size=new_image_size)
+                                           new_image_size=new_image_size,
+                                           path_to_existing_timesteps=path_to_existing_timesteps)
 
 
-def concatenate_labels_(labels, my_own_labels):
+def concatenate_labels(path_to_full_labels_arousal, path_to_timesteps):
+    # TODO: dodelay
+    full_labels=pd.read_csv(path_to_full_labels_arousal)
+    full_labels.columns=['filename_timestep','arousal']
+    full_labels['filename'], full_labels['timestep'] = full_labels['filename_timestep'].str.split('_').str
+    full_labels.drop(columns=['filename_timestep'], inplace=True)
+    files = os.listdir(path_to_timesteps)
+    for file in files:
+        timestep=pd.read_csv(path_to_timesteps, file)
 
-    pass
 
-path_to_video='D:\\DB\\001_RECOLA\\RECOLA_Video_recordings\\P16.mp4'
-path_to_extracted_frames='D:\\DB\\001_RECOLA\\temp\\'
-if not os.path.exists(path_to_extracted_frames):
-    os.mkdir(path_to_extracted_frames)
-path_to_timesteps='D:\\DB\\001_RECOLA\\temp\\'
-extract_faces_and_labels_for_video(path_to_video, path_to_extracted_frames, path_to_timesteps, (224,224))
+path_to_videos='D:\\DB\\RECOLA\\original\\RECOLA_Video_recordings\\1\\'
+path_to_extracted_frames='D:\\DB\\RECOLA\\processed\\data\\'
+path_to_timesteps='D:\\DB\\RECOLA\\processed\\timesteps\\'
+path_to_existing_timesteps='D:\\DB\\RECOLA\\original\\RECOLA-Video-timings\\'
+preprocess_all_database(path_to_videos, path_to_extracted_frames, path_to_timesteps, (224,224), path_to_existing_timesteps)
