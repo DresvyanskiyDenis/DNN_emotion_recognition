@@ -75,6 +75,7 @@ def preprocess_all_database(path_to_videos, path_to_extracted_frames, path_to_ti
     :param path_to_extracted_frames: path to folder, where extracted images should store
     :param path_to_timesteps: path to folder, where timesteps of extracted images should store
     :param new_image_size: size for extracted image
+    :param path_to_existing_timesteps: path to existing timesteps of database, if it exists
     :return:
     '''
     files = os.listdir(path_to_videos)
@@ -89,15 +90,25 @@ def preprocess_all_database(path_to_videos, path_to_extracted_frames, path_to_ti
                                            path_to_existing_timesteps=path_to_existing_timesteps)
 
 
-def concatenate_labels(path_to_full_labels_arousal, path_to_timesteps):
+def concatenate_labels(path_to_full_labels_arousal,path_to_full_labels_valence, path_to_timesteps, path_to_save_complete_labels):
     # TODO: dodelay
-    full_labels=pd.read_csv(path_to_full_labels_arousal)
-    full_labels.columns=['filename_timestep','arousal']
-    full_labels['filename'], full_labels['timestep'] = full_labels['filename_timestep'].str.split('_').str
-    full_labels.drop(columns=['filename_timestep'], inplace=True)
+    full_labels_arousal=pd.read_csv(path_to_full_labels_arousal)
+    full_labels_arousal.columns=['filename_timestep','arousal']
+    full_labels_arousal['filename'], full_labels_arousal['timestep'] = full_labels_arousal['filename_timestep'].str.split('_').str
+    full_labels_arousal.drop(columns=['filename_timestep'], inplace=True)
+
+    full_labels_valence=pd.read_csv(path_to_full_labels_valence)
+    path_to_full_labels_valence.columns=['filename_timestep','valence']
+    full_labels = pd.concat((full_labels_arousal, full_labels_valence['valence']))
+
     files = os.listdir(path_to_timesteps)
     for file in files:
-        timestep=pd.read_csv(path_to_timesteps, file)
+        timesteps_dataframe=pd.read_csv(path_to_timesteps+file)
+        filename='REC'+"%04d"%int(timesteps_dataframe['frame'].iloc[0].split('_')[0][1:]) # TODO: проверить, как досчитается
+        tmp_df=pd.DataFrame(full_labels[full_labels['filename']==filename])
+        # TODO: теперь по индексам (или другим способом) взять только те строки, таймстепы которых есть и там, и там
+        
+
 
 
 path_to_videos='D:\\DB\\RECOLA\\original\\RECOLA_Video_recordings\\1\\'
