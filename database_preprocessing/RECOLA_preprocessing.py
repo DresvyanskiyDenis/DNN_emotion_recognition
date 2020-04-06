@@ -91,28 +91,47 @@ def preprocess_all_database(path_to_videos, path_to_extracted_frames, path_to_ti
 
 
 def concatenate_labels(path_to_full_labels_arousal,path_to_full_labels_valence, path_to_timesteps, path_to_save_complete_labels):
-    # TODO: dodelay
+    '''
+    This function split global label file (and concatenate arousal and valence) with all filenames on different subfiles according to timesteps and filenames
+    :param path_to_full_labels_arousal: path to global 100 Hz label file with arousal
+    :param path_to_full_labels_valence: path to global 100 Hz label file with valence
+    :param path_to_timesteps: path to folder, where exist the timesteps for each video
+    :param path_to_save_complete_labels: path to folder, where result of this function will saved
+    :return:
+    '''
+    if not os.path.exists(path_to_save_complete_labels): os.mkdir(path_to_save_complete_labels)
     full_labels_arousal=pd.read_csv(path_to_full_labels_arousal)
     full_labels_arousal.columns=['filename_timestep','arousal']
     full_labels_arousal['filename'], full_labels_arousal['timestep'] = full_labels_arousal['filename_timestep'].str.split('_').str
     full_labels_arousal.drop(columns=['filename_timestep'], inplace=True)
 
     full_labels_valence=pd.read_csv(path_to_full_labels_valence)
-    path_to_full_labels_valence.columns=['filename_timestep','valence']
-    full_labels = pd.concat((full_labels_arousal, full_labels_valence['valence']))
-
+    full_labels_valence.columns=['filename_timestep','valence']
+    full_labels = pd.concat((full_labels_arousal, full_labels_valence['valence']), axis=1)
+    full_labels=full_labels[['filename', 'timestep', 'arousal', 'valence']]
+    full_labels['timestep']=full_labels['timestep'].astype('float64')
     files = os.listdir(path_to_timesteps)
     for file in files:
         timesteps_dataframe=pd.read_csv(path_to_timesteps+file)
-        filename='REC'+"%04d"%int(timesteps_dataframe['frame'].iloc[0].split('_')[0][1:]) # TODO: проверить, как досчитается
+        timesteps_dataframe.set_index('timestep', inplace=True)
+        filename='REC'+"%04d"%int(file.split('.')[0][1:])
         tmp_df=pd.DataFrame(full_labels[full_labels['filename']==filename])
-        # TODO: теперь по индексам (или другим способом) взять только те строки, таймстепы которых есть и там, и там
-        
+        tmp_df.set_index('timestep', inplace=True)
+        final=pd.merge(timesteps_dataframe, tmp_df, left_index=True, right_index=True)
+        final.drop(columns=['filename'], inplace=True)
+        final.to_csv(path_to_save_complete_labels+file)
 
 
 
-path_to_videos='D:\\DB\\RECOLA\\original\\RECOLA_Video_recordings\\1\\'
+
+'''path_to_videos='D:\\DB\\RECOLA\\original\\RECOLA_Video_recordings\\1\\'
 path_to_extracted_frames='D:\\DB\\RECOLA\\processed\\data\\'
 path_to_timesteps='D:\\DB\\RECOLA\\processed\\timesteps\\'
 path_to_existing_timesteps='D:\\DB\\RECOLA\\original\\RECOLA-Video-timings\\'
-preprocess_all_database(path_to_videos, path_to_extracted_frames, path_to_timesteps, (224,224), path_to_existing_timesteps)
+preprocess_all_database(path_to_videos, path_to_extracted_frames, path_to_timesteps, (224,224), path_to_existing_timesteps)'''
+
+path_to_full_labels_arousal='D:\\DB\\RECOLA\\REC_labels_arousal_100Hz_gold_shifted.csv'
+path_to_full_labels_valence='D:\\DB\\RECOLA\\REC_labels_valence_100Hz_gold_shifted.csv'
+path_to_timesteps='D:\\DB\\RECOLA\\processed\\timesteps\\'
+path_to_save_complete_labels='D:\\DB\\RECOLA\\processed\\final_labels\\'
+concatenate_labels(path_to_full_labels_arousal, path_to_full_labels_valence, path_to_timesteps, path_to_save_complete_labels)
