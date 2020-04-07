@@ -125,8 +125,8 @@ path_to_extracted_frames='D:\\DB\\SEWA\\processed\\data\\'
 path_to_timesteps='D:\\DB\\SEWA\\processed\\timesteps\\'
 preprocess_all_database(path_to_videos, path_to_extracted_frames, path_to_timesteps, (224,224))'''
 
-path_to_full_labels_arousal='D:\\DB\\SEWA\\REC_labels_arousal_100Hz_gold_shifted.csv'
-path_to_full_labels_valence='D:\\DB\\SEWA\\REC_labels_valence_100Hz_gold_shifted.csv'
+path_to_full_labels_arousal='D:\\DB\\SEWA\\SEW_labels_arousal_100Hz_gold_shifted.csv'
+path_to_full_labels_valence='D:\\DB\\SEWA\\SEW_labels_valence_100Hz_gold_shifted.csv'
 path_to_timesteps='D:\\DB\\SEWA\\processed\\timesteps\\'
 path_to_save_complete_labels='D:\\DB\\SEWA\\processed\\final_labels\\'
 concatenate_labels(path_to_full_labels_arousal, path_to_full_labels_valence, path_to_timesteps, path_to_save_complete_labels)
