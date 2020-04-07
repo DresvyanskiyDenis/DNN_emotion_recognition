@@ -84,49 +84,8 @@ def preprocess_all_database(path_to_videos, path_to_extracted_frames, path_to_ti
                                            path_to_timesteps=path_to_timesteps,
                                            new_image_size=new_image_size)
 
-def concatenate_labels(path_to_full_labels_arousal,path_to_full_labels_valence, path_to_timesteps, path_to_save_complete_labels):
-    # TODO: Check it!
-    '''
-    This function split global label file (and concatenate arousal and valence) with all filenames on different subfiles according to timesteps and filenames
-    :param path_to_full_labels_arousal: path to global 100 Hz label file with arousal
-    :param path_to_full_labels_valence: path to global 100 Hz label file with valence
-    :param path_to_timesteps: path to folder, where exist the timesteps for each video
-    :param path_to_save_complete_labels: path to folder, where result of this function will saved
-    :return:
-    '''
-    if not os.path.exists(path_to_save_complete_labels): os.mkdir(path_to_save_complete_labels)
-    full_labels_arousal=pd.read_csv(path_to_full_labels_arousal)
-    full_labels_arousal.columns=['filename_timestep','arousal']
-    full_labels_arousal['filename'], full_labels_arousal['timestep'] = full_labels_arousal['filename_timestep'].str.split('_').str
-    full_labels_arousal.drop(columns=['filename_timestep'], inplace=True)
 
-    full_labels_valence=pd.read_csv(path_to_full_labels_valence)
-    full_labels_valence.columns=['filename_timestep','valence']
-    full_labels = pd.concat((full_labels_arousal, full_labels_valence['valence']), axis=1)
-    full_labels=full_labels[['filename', 'timestep', 'arousal', 'valence']]
-    full_labels['timestep']=full_labels['timestep'].astype('float64')
-    files = os.listdir(path_to_timesteps)
-    for file in files:
-        timesteps_dataframe=pd.read_csv(path_to_timesteps+file)
-        timesteps_dataframe['timestep']=timesteps_dataframe['timestep'].astype('float64')
-        timesteps_dataframe.round({'timestep':2}, inplace=True) # rounding because of artifacts of float
-        timesteps_dataframe.set_index('timestep', inplace=True)
-        filename=file.split('.')[0]
-        tmp_df=pd.DataFrame(full_labels[full_labels['filename']==filename])
-        tmp_df.set_index('timestep', inplace=True)
-        final=pd.merge(timesteps_dataframe, tmp_df, left_index=True, right_index=True)
-        final.drop(columns=['filename'], inplace=True)
-        final.to_csv(path_to_save_complete_labels+file)
-
-
-
-'''path_to_videos='D:\\DB\\SEWA\\Original\\videos\\1\\'
-path_to_extracted_frames='D:\\DB\\SEWA\\processed\\data\\'
-path_to_timesteps='D:\\DB\\SEWA\\processed\\timesteps\\'
-preprocess_all_database(path_to_videos, path_to_extracted_frames, path_to_timesteps, (224,224))'''
-
-path_to_full_labels_arousal='D:\\DB\\SEWA\\REC_labels_arousal_100Hz_gold_shifted.csv'
-path_to_full_labels_valence='D:\\DB\\SEWA\\REC_labels_valence_100Hz_gold_shifted.csv'
-path_to_timesteps='D:\\DB\\SEWA\\processed\\timesteps\\'
-path_to_save_complete_labels='D:\\DB\\SEWA\\processed\\final_labels\\'
-concatenate_labels(path_to_full_labels_arousal, path_to_full_labels_valence, path_to_timesteps, path_to_save_complete_labels)
+path_to_videos='E:\\DB\\SEMAINE\\original\\SEMAINE_videos\\1\\'
+path_to_extracted_frames='E:\\DB\\SEMAINE\\processed\\data\\'
+path_to_timesteps='E:\\DB\\SEMAINE\\processed\\timesteps\\'
+preprocess_all_database(path_to_videos, path_to_extracted_frames, path_to_timesteps, (224,224))
