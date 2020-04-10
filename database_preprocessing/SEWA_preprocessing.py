@@ -109,7 +109,7 @@ def concatenate_labels(path_to_full_labels_arousal,path_to_full_labels_valence, 
     for file in files:
         timesteps_dataframe=pd.read_csv(path_to_timesteps+file)
         timesteps_dataframe['timestep']=timesteps_dataframe['timestep'].astype('float64')
-        timesteps_dataframe.round({'timestep':2}, inplace=True) # rounding because of artifacts of float
+        timesteps_dataframe=timesteps_dataframe.round({'timestep':2}) # rounding because of artifacts of float
         timesteps_dataframe.set_index('timestep', inplace=True)
         filename=file.split('.')[0]
         tmp_df=pd.DataFrame(full_labels[full_labels['filename']==filename])
