@@ -1,6 +1,6 @@
 import PIL
 import numpy as np
-import AffectNet.train.VGGface2.src.config as cg
+import AffectNet.train.Train_on_AffectNet.VGGface2.src.config as cg
 
 def load_preprocess_image(path=''):
     img = PIL.Image.open(path)

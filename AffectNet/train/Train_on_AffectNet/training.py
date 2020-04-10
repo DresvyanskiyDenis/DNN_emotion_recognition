@@ -1,20 +1,15 @@
 import os
 
-import cv2
 import numpy as np
 import pandas as pd
 from keras import Model, regularizers
-from keras import backend as K
-from keras.callbacks import EarlyStopping, ModelCheckpoint
-from keras.layers import Flatten, Dense, LeakyReLU
+from keras.layers import Dense
 # Loading images and labels
-from keras_vggface.utils import preprocess_input
-from tensorflow import keras
 
-from AffectNet.train.VGGface2.src.model import Vggface2_ResNet50
-from AffectNet.train.VGGface2.src.utils import load_preprocess_image
+from AffectNet.train.Train_on_AffectNet.VGGface2.src.model import  model_AffectNet
+from AffectNet.train.Train_on_AffectNet.VGGface2.src.utils import load_preprocess_image
 
-path_to_save_best_model='best_model/'
+path_to_save_best_model= 'best_model/'
 if not os.path.exists(path_to_save_best_model):
     os.mkdir(path_to_save_best_model)
 path_to_train_labels='C:\\Users\\Dresvyanskiy\\Desktop\\Databases\\AffectNet\\train\\train_labels_copy.csv'
@@ -36,16 +31,13 @@ for i in range(validation_labels.shape[0]):
 
 
 # Model
-path_to_weights='C:\\Users\\Dresvyanskiy\\Desktop\\Projects\\DNN_emotion_recognition\\AffectNet\\train\\VGGface2\\model\\resnet50_softmax_dim512\\weights.h5'
-tmp_model=Vggface2_ResNet50(input_dim=image_shape, mode='train')
-tmp_model.load_weights(path_to_weights)
-last_layer=tmp_model.get_layer('dim_proj').output
-out=Dense(2, activation='linear', kernel_regularizer=regularizers.l2(0.0001))(last_layer)
-model=Model(inputs=tmp_model.inputs, outputs=out)
+path_to_weights= '/AffectNet/train/Train_on_AffectNet/VGGface2\\model\\resnet50_softmax_dim512\\weights.h5'
+
+model=model_AffectNet(input_dim=image_shape, path_to_weights=path_to_weights, trained=False)
 for i in range(len(model.layers)):
     model.layers[i].trainable=False
-model.layers[-1].trainable=True
-model.layers[-2].trainable=True
+for i in range(141,len(model.layers)):
+    model.layers[i].trainable=False
 model.compile(optimizer='Adam', loss='mse')
 print(model.summary())
 # Train params
