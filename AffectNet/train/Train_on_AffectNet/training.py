@@ -31,7 +31,7 @@ for i in range(validation_labels.shape[0]):
 
 
 # Model
-path_to_weights= '/AffectNet/train/Train_on_AffectNet/VGGface2\\model\\resnet50_softmax_dim512\\weights.h5'
+path_to_weights= 'C:\\Users\\Dresvyanskiy\\Desktop\\Projects\\Resnet_model\\model\\resnet50_softmax_dim512\\weights.h5'
 
 model=model_AffectNet(input_dim=image_shape, path_to_weights=path_to_weights, trained=False)
 for i in range(len(model.layers)):
