@@ -34,7 +34,6 @@ def load_labels(path_to_labels, size_window, step):
     pass
 
 def transform_labels_to_windowed_labels(path_to_data,labels, size_window, step):
-    # TODO: implement this function
     num_windows=how_many_windows_do_you_need_for_this_labels(labels, size_window, step)
     start_point=0
     end_point=labels.shape[0]
