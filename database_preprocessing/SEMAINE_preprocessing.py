@@ -120,13 +120,13 @@ def concatenate_labels(path_to_full_labels_arousal,path_to_full_labels_valence, 
 
 
 
-'''path_to_videos='E:\\DB\\SEMAINE\\original\\SEMAINE_videos\\1\\'
-path_to_extracted_frames='E:\\DB\\SEMAINE\\processed\\data\\'
-path_to_timesteps='E:\\DB\\SEMAINE\\processed\\timesteps\\'
-preprocess_all_database(path_to_videos, path_to_extracted_frames, path_to_timesteps, (224,224))'''
+path_to_videos='D:\\DB\\SEMAINE\\original\\SEMAINE_videos\\3\\'
+path_to_extracted_frames='D:\\DB\\SEMAINE\\processed\\data\\'
+path_to_timesteps='D:\\DB\\SEMAINE\\processed\\timesteps\\'
+preprocess_all_database(path_to_videos, path_to_extracted_frames, path_to_timesteps, (224,224))
 
-path_to_full_labels_arousal='D:\\DB\\SEMAINE\\SEM_labels_arousal_100Hz_gold_shifted.csv'
+'''path_to_full_labels_arousal='D:\\DB\\SEMAINE\\SEM_labels_arousal_100Hz_gold_shifted.csv'
 path_to_full_labels_valence='D:\\DB\\SEMAINE\\SEM_labels_valence_100Hz_gold_shifted.csv'
 path_to_timesteps='D:\\DB\\SEMAINE\\processed\\timesteps\\'
 path_to_save_complete_labels='D:\\DB\\SEMAINE\\processed\\final_labels\\'
-concatenate_labels(path_to_full_labels_arousal, path_to_full_labels_valence, path_to_timesteps, path_to_save_complete_labels)
+concatenate_labels(path_to_full_labels_arousal, path_to_full_labels_valence, path_to_timesteps, path_to_save_complete_labels)'''
