@@ -48,15 +48,15 @@ def model_AffectNet(input_dim, path_to_weights, mode='with_last_layer', trained=
     if trained==True: model.load_weights(path_to_weights)
     return model
 
-def model_AffectNet_with_reccurent(input_dim, path_to_weights, trained=True):
-    tmp_model = model_AffectNet(input_dim=input_dim[1:], path_to_weights=path_to_weights, trained=trained)
+def model_AffectNet_with_reccurent(input_dim, path_to_weights, trained_AffectNet=True):
+    tmp_model = model_AffectNet(input_dim=input_dim[1:], path_to_weights=path_to_weights, trained=trained_AffectNet)
     last_layer = tmp_model.get_layer('dim_proj').output
     tmp_model = Model(inputs=tmp_model.inputs, outputs=last_layer)
     new_input = Input(shape=input_dim)
     timeDistributed_layer = TimeDistributed(tmp_model)(new_input)
     lstm1 = LSTM(512, return_sequences=True)(timeDistributed_layer)
     lstm2 = LSTM(256, return_sequences=True)(lstm1)
-    out = Dense(2, activation='linear', name='output_arousal_valence')(lstm2)
+    out = Dense(1, activation='linear', name='output_arousal')(lstm2)
     new_model = Model(inputs=new_input, outputs=out)
     return new_model
 
