@@ -5,10 +5,6 @@ import numpy as np
 
 from AffectNet.train.Train_on_AffectNet.VGGface2.src.utils import load_preprocess_image
 
-path_to_data_RECOLA=''
-path_to_labels_RECOLA=''
-path_to_data_SEWA=''
-path_to_labels_SEWA=''
 
 def how_many_windows_do_you_need_for_this_labels(labels, size_of_window, step):
     length=labels.shape[0]
@@ -31,8 +27,9 @@ def load_labels(path_to_data,path_to_labels, size_window, step):
     for file in files:
         labels = pd.read_csv(path_to_labels + file)
         if 'SEW' in file or 'SEM' in file:
-            labels=labels.iloc[::2] # to make timestep equal 0.04 (originally is 0.02) # TODO: check it
-        transformed_labels=transform_labels_to_windowed_labels(path_to_data=path_to_data+file.split('.')[0],
+            labels=labels.iloc[::8] # to make timestep equal 0.04 (originally is 0.02) # TODO: check it
+        else: labels=labels.iloc[::4]
+        transformed_labels=transform_labels_to_windowed_labels(path_to_data=path_to_data+file.split('.')[0]+'\\',
                                                                labels=labels, size_window=size_window, step=step)
         if flag_result_labels==False:
             result_labels=transformed_labels
@@ -53,24 +50,24 @@ def transform_labels_to_windowed_labels(path_to_data,labels, size_window, step):
     for window_index in range(num_windows-1):
         new_labels['videofile'].iloc[window_index]=path_to_data.split('\\')[-1]
         new_labels['window'].iloc[window_index]=window_index
-        new_labels['list_filenames_images'].iloc[window_index]=[path_to_data+labels['frame'].iloc[i]+'.png' for i in range(start_point,start_point+step)]
-        new_labels['timesteps'].iloc[window_index]=[np.array(labels['timestep'].iloc[start_point:(start_point+step)]).reshape((-1))]
-        new_labels['arousal'].iloc[window_index]=[np.array(labels[['arousal']].iloc[start_point:(start_point+step)]).reshape((-1))]
-        new_labels['valence'].iloc[window_index] = [np.array(labels[['valence']].iloc[start_point:(start_point + step)]).reshape((-1))]
+        new_labels['list_filenames_images'].iloc[window_index]=[path_to_data+labels['frame'].iloc[i]+'.png' for i in range(start_point,start_point+size_window)]
+        new_labels['timesteps'].iloc[window_index]=[np.array(labels['timestep'].iloc[start_point:(start_point+size_window)]).reshape((-1))]
+        new_labels['arousal'].iloc[window_index]=[np.array(labels[['arousal']].iloc[start_point:(start_point+size_window)]).reshape((-1))]
+        new_labels['valence'].iloc[window_index] = [np.array(labels[['valence']].iloc[start_point:(start_point + size_window)]).reshape((-1))]
         start_point+=step
     window_index=num_windows-1
     new_labels['videofile'].iloc[window_index] = path_to_data.split('\\')[-1]
     new_labels['window'].iloc[window_index] = window_index
-    new_labels['list_filenames_images'].iloc[window_index] = [path_to_data + labels['frame'].iloc[i] + '.png' for i in range(end_point-step, end_point)]
-    new_labels['timesteps'].iloc[window_index] = [np.array(labels[['timestep']].iloc[(end_point - step):end_point])]
-    new_labels['arousal'].iloc[window_index] = [np.array(labels[['arousal']].iloc[(end_point-step):end_point])]
-    new_labels['valence'].iloc[window_index] = [np.array(labels[['valence']].iloc[(end_point - step):end_point])]
+    new_labels['list_filenames_images'].iloc[window_index] = [path_to_data + labels['frame'].iloc[i] + '.png' for i in range(end_point-size_window, end_point)]
+    new_labels['timesteps'].iloc[window_index] = [np.array(labels[['timestep']].iloc[(end_point - size_window):end_point]).reshape((-1))]
+    new_labels['arousal'].iloc[window_index] = [np.array(labels[['arousal']].iloc[(end_point-size_window):end_point]).reshape((-1))]
+    new_labels['valence'].iloc[window_index] = [np.array(labels[['valence']].iloc[(end_point - size_window):end_point]).reshape((-1))]
     return new_labels
 
 def load_sequence_data(paths, shape_of_image):
     result=np.zeros((len(paths),)+shape_of_image)
     for i in range(len(paths)):
-        if paths[i].split('\\')[-1]=='NO_FACE':
+        if paths[i].split('\\')[-1].split('.')[0]=='NO_FACE':
             image=np.zeros(shape_of_image)
         else:
             image=load_preprocess_image(paths[i])
@@ -84,8 +81,8 @@ labels=pd.read_csv(path_to_label)
 size_window=100
 step=80
 new_labels=transform_labels_to_windowed_labels(path_to_data, labels,size_window,step)'''
-path_to_data_SEMAINE='D:\\DB\\SEMAINE\\processed\\data\\'
+'''path_to_data_SEMAINE='D:\\DB\\SEMAINE\\processed\\data\\'
 path_to_labels_SEMAINE='D:\\DB\\SEMAINE\\processed\\final_labels\\'
 size_window=100
 step=100
-result_labels=load_labels(path_to_data_SEMAINE, path_to_labels_SEMAINE, size_window, step) # columns='videofile','window','list_filenames_images','timesteps','arousal','valence'
+result_labels=load_labels(path_to_data_SEMAINE, path_to_labels_SEMAINE, size_window, step) # columns='videofile','window','list_filenames_images','timesteps','arousal','valence'''

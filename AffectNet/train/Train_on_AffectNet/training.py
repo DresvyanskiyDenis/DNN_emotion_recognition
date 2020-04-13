@@ -72,7 +72,7 @@ for epoch in range(epochs):
     results = model.evaluate(x=validation_data, y=validation_labels[['arousal', 'valence']], verbose=2)
     if results < old_result:
         old_result = results
-        model.save_weights(path_to_save_best_model+'model_weights.h5')
+        model.save_weights(path_to_save_best_model+'weights_arousal.h5')
         model.save(path_to_save_best_model+'model.h5')
     print('mse on validation data:', results)
 

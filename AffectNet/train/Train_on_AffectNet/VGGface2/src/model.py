@@ -1,5 +1,5 @@
 import keras
-from keras import regularizers, Model, Input
+from keras import regularizers, Model, Input, Sequential
 from keras.layers import Dense, LSTM, TimeDistributed, Flatten
 
 from AffectNet.train.Train_on_AffectNet.VGGface2.src import resnet
@@ -52,12 +52,22 @@ def model_AffectNet_with_reccurent(input_dim, path_to_weights, trained_AffectNet
     tmp_model = model_AffectNet(input_dim=input_dim[1:], path_to_weights=path_to_weights, trained=trained_AffectNet)
     last_layer = tmp_model.get_layer('dim_proj').output
     tmp_model = Model(inputs=tmp_model.inputs, outputs=last_layer)
-    new_input = Input(shape=input_dim)
-    timeDistributed_layer = TimeDistributed(tmp_model)(new_input)
+    # for train only last Dense layer
+    for i in range(len(tmp_model.layers)):
+        tmp_model.layers[i].trainable=False
+    tmp_model.get_layer('dim_proj').trainable=True
+    print(tmp_model.summary())
+    # creating the model
+    new_model=Sequential()
+    new_model.add(TimeDistributed(tmp_model, input_shape=input_dim))
+    new_model.add(LSTM(512, return_sequences=True))
+    new_model.add(LSTM(256, return_sequences=True))
+    new_model.add(Dense(1, activation='linear', name='output_arousal'))
+    '''timeDistributed_layer = TimeDistributed(tmp_model)(new_input)
     lstm1 = LSTM(512, return_sequences=True)(timeDistributed_layer)
     lstm2 = LSTM(256, return_sequences=True)(lstm1)
     out = Dense(1, activation='linear', name='output_arousal')(lstm2)
-    new_model = Model(inputs=new_input, outputs=out)
+    new_model = Model(inputs=new_input, outputs=out)'''
     return new_model
 
 
