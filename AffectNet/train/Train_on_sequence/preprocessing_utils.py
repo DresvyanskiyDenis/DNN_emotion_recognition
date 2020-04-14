@@ -63,6 +63,21 @@ def transform_labels_to_windowed_labels(path_to_data,labels, size_window, step):
     new_labels['valence'].iloc[window_index] = [np.array(labels[['valence']].iloc[(end_point - size_window):end_point]).reshape((-1))]
     return new_labels
 
+def check_window_for_no_face(window, percent):
+    counter=0
+    for i in range(len(window)):
+        if window[i].split('\\')[-1]=='NO_FACE.png': counter+=1
+    if counter/len(window)>=percent: return False
+    else: return True
+
+def delete_windows_with_many_no_face(labels, percent):
+    mask=np.zeros(shape=(labels.shape[0]), dtype='bool')
+    for i in range(labels.shape[0]):
+        result_bool=check_window_for_no_face(labels['list_filenames_images'].iloc[i], percent)
+        mask[i]=result_bool
+    labels=labels.iloc[mask]
+    return labels
+
 def load_sequence_data(paths, shape_of_image):
     result=np.zeros((len(paths),)+shape_of_image)
     weights=np.zeros((len(paths),))
