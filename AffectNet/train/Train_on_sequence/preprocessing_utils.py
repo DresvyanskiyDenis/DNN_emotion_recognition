@@ -65,13 +65,15 @@ def transform_labels_to_windowed_labels(path_to_data,labels, size_window, step):
 
 def load_sequence_data(paths, shape_of_image):
     result=np.zeros((len(paths),)+shape_of_image)
+    weights=np.zeros((len(paths),))
     for i in range(len(paths)):
         if paths[i].split('\\')[-1].split('.')[0]=='NO_FACE':
             image=np.zeros(shape_of_image)
         else:
             image=load_preprocess_image(paths[i])
+            weights[i]=1
         result[i]=image
-    return result
+    return result, weights
 
 def load_ground_truth_labels(path_to_labels, label_type):
     result=None
