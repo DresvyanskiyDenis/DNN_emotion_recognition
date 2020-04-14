@@ -4,25 +4,29 @@ import pandas as pd
 import numpy as np
 
 from AffectNet.train.Train_on_AffectNet.VGGface2.src.model import model_AffectNet_with_reccurent
-from AffectNet.train.Train_on_sequence.preprocessing_utils import load_labels, load_sequence_data
+from AffectNet.train.Train_on_sequence.preprocessing_utils import load_labels, load_sequence_data, \
+    delete_windows_with_many_no_face
 
-path_to_data_RECOLA='D:\\DB\\RECOLA\\processed\\data\\'
-path_to_labels_RECOLA='D:\\DB\\RECOLA\\processed\\final_labels\\'
-path_to_data_SEWA='D:\\DB\\SEWA\\processed\\data\\'
-path_to_labels_SEWA='D:\\DB\\SEWA\\processed\\final_labels\\'
-path_to_data_SEMAINE='D:\\DB\\SEMAINE\\processed\\data\\'
-path_to_labels_SEMAINE='D:\\DB\\SEMAINE\\processed\\final_labels\\'
+path_to_data_RECOLA='E:\\DB\\RECOLA\\processed\\data\\'
+path_to_labels_RECOLA='E:\\DB\\RECOLA\\processed\\final_labels\\'
+path_to_data_SEWA='E:\\DB\\SEWA\\processed\\data\\'
+path_to_labels_SEWA='E:\\DB\\SEWA\\processed\\final_labels\\'
+path_to_data_SEMAINE='E:\\DB\\SEMAINE\\processed\\data\\'
+path_to_labels_SEMAINE='E:\\DB\\SEMAINE\\processed\\final_labels\\'
 
 path_to_save_best_model= 'best_model/'
 if not os.path.exists(path_to_save_best_model):
     os.mkdir(path_to_save_best_model)
 
 size_window=50
-step=20
+step=10
 # total 14651 sequences
 RECOLA_labels=load_labels(path_to_data_RECOLA, path_to_labels_RECOLA, size_window, step)
+#RECOLA_labels=delete_windows_with_many_no_face(RECOLA_labels, 0.3)
 SEWA_labels=load_labels(path_to_data_SEWA, path_to_labels_SEWA, size_window, step)
+SEWA_labels=delete_windows_with_many_no_face(SEWA_labels, 0.3)
 SEMAINE_labels=labels=load_labels(path_to_data_SEMAINE, path_to_labels_SEMAINE, size_window, step)
+SEMAINE_labels=delete_windows_with_many_no_face(SEMAINE_labels, 0.3)
 
 
 # params
@@ -37,16 +41,16 @@ epochs=10
 batch_size=2
 verbose=2
 # Model
-path_to_weights='C:\\Users\\Dresvyanskiy\\Desktop\\Projects\\DNN_emotion_recognition\\model_weights\\weights_'+labels_type+'.h5'
+path_to_weights='C:\\Users\\Denis\\PycharmProjects\\DNN_emotion_recognition\\AffectNet\\model_weights\\weights_'+labels_type+'.h5'
 model=model_AffectNet_with_reccurent(input_dim=input_shape, path_to_weights=path_to_weights, trained_AffectNet=True)
 
 model.compile(optimizer='Adam',loss='mse', sample_weight_mode='temporal')
 print(model.summary())
 
-train_labels=pd.concat((RECOLA_labels, SEWA_labels, SEMAINE_labels), axis=0)
+train_labels=pd.concat((SEWA_labels, SEMAINE_labels), axis=0)
 train_labels.drop(columns=['valence'], inplace=True)
 # calculate intervals for training
-number_of_intervals=7325
+number_of_intervals=12709
 step=train_labels.shape[0]/number_of_intervals
 points_train_data_list=[0]
 for i in range(number_of_intervals):

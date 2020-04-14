@@ -1,4 +1,4 @@
-from AffectNet.train.Train_on_AffectNet.VGGface2.src.model import model_AffectNet_with_reccurent
+'''from AffectNet.train.Train_on_AffectNet.VGGface2.src.model import model_AffectNet_with_reccurent
 import numpy as np
 input_shape=(3,224,224,3)
 
@@ -23,4 +23,4 @@ predictions=model.fit(data,labels, batch_size=1, verbose=1, sample_weight=weight
 
 print(model.summary())
 print(predictions)
-a=1+2
+a=1+2'''
