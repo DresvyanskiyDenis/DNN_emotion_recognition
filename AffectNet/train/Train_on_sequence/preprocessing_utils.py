@@ -20,14 +20,13 @@ def how_many_windows_do_you_need_for_this_labels(labels, size_of_window, step):
 
 
 def load_labels(path_to_data,path_to_labels, size_window, step):
-    # TODO: you need to end this function
     result_labels=None
     flag_result_labels=False
     files=os.listdir(path_to_labels)
     for file in files:
         labels = pd.read_csv(path_to_labels + file)
         if 'SEW' in file or 'SEM' in file:
-            labels=labels.iloc[::8] # to make timestep equal 0.04 (originally is 0.02) # TODO: check it
+            labels=labels.iloc[::8] # to make timestep equal 0.04 (originally is 0.02)
         else: labels=labels.iloc[::4]
         transformed_labels=transform_labels_to_windowed_labels(path_to_data=path_to_data+file.split('.')[0]+'\\',
                                                                labels=labels, size_window=size_window, step=step)
@@ -74,6 +73,33 @@ def load_sequence_data(paths, shape_of_image):
         result[i]=image
     return result
 
+def load_ground_truth_labels(path_to_labels, label_type):
+    result=None
+    flag_for_result=False
+    files = os.listdir(path_to_labels)
+    for file in files:
+        labels = pd.read_csv(path_to_labels + file)
+        if 'SEW' in file or 'SEM' in file:
+            labels = labels.iloc[::8]  # to make timestep equal 0.16 (originally is 0.02)
+        else:
+            labels = labels.iloc[::4]
+        if flag_for_result==False:
+            result=labels
+            flag_for_result=True
+        else:
+            result=pd.concat((result,labels), axis=0)
+    if label_type=='arousal': result.drop(columns=['valence'], inplace=True)
+    elif label_type=='valence': result.drop(columns=['arousal'], inplace=True)
+    return result
+
+def calculate_performance_on_validation(model,val_labels, path_to_ground_truth_labels, label_type):
+    ground_truth=load_ground_truth_labels(path_to_ground_truth_labels,label_type)
+    ground_truth=ground_truth[ground_truth['frame']!='NO_FACE']
+    val_data=None
+    predictions=pd.DataFrame(columns=['frame','timestep',label_type])
+    for val_label_idx in range(val_labels.shape[0]):
+        pass
+    pass
 
 '''path_to_data=r'D:\DB\RECOLA\processed\data\P16/'
 path_to_label=r'D:\DB\RECOLA\processed\final_labels\P16.csv'
