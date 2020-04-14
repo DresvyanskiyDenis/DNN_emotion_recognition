@@ -5,7 +5,7 @@ import numpy as np
 
 from AffectNet.train.Train_on_AffectNet.VGGface2.src.model import model_AffectNet_with_reccurent
 from AffectNet.train.Train_on_sequence.preprocessing_utils import load_labels, load_sequence_data, \
-    delete_windows_with_many_no_face
+    delete_windows_with_many_no_face, calculate_performance_on_validation
 
 path_to_data_RECOLA='E:\\DB\\RECOLA\\processed\\data\\'
 path_to_labels_RECOLA='E:\\DB\\RECOLA\\processed\\final_labels\\'
@@ -77,3 +77,4 @@ for epoch in range(epochs):
         train_data = train_data.astype('float32')
         train_lbs=train_lbs[..., np.newaxis]
         model.fit(x=train_data, y=train_lbs, batch_size=batch_size, epochs=1, verbose=verbose, sample_weight=train_data_weights)
+    val_score=calculate_performance_on_validation(model,RECOLA_labels,path_to_labels_RECOLA, labels_type,input_shape)

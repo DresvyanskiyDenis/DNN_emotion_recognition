@@ -2,6 +2,7 @@ import os
 
 import pandas as pd
 import numpy as np
+import sklearn
 
 from AffectNet.train.Train_on_AffectNet.VGGface2.src.utils import load_preprocess_image
 
@@ -109,14 +110,46 @@ def load_ground_truth_labels(path_to_labels, label_type):
     elif label_type=='valence': result.drop(columns=['arousal'], inplace=True)
     return result
 
-def calculate_performance_on_validation(model,val_labels, path_to_ground_truth_labels, label_type):
+def calculate_performance_on_validation(model,val_labels, path_to_ground_truth_labels, label_type, input_shape):
+    # ground truth labels, columns: timestep,frame,label_type
     ground_truth=load_ground_truth_labels(path_to_ground_truth_labels,label_type)
     ground_truth=ground_truth[ground_truth['frame']!='NO_FACE']
-    val_data=None
-    predictions=pd.DataFrame(columns=['frame','timestep',label_type])
-    for val_label_idx in range(val_labels.shape[0]):
-        pass
-    pass
+
+    val_data=np.zeros(shape=(1,)+input_shape)
+    predictions=val_labels.copy(deep=True)
+    if label_type=='arousal': predictions.drop(columns=['valence'], inplace=True)
+    elif label_type=='valence': predictions.drop(columns=['arousal'], inplace=True)
+    # make predictions for windows
+    for pred_idx in range(predictions.shape[0]):
+        paths = predictions['list_filenames_images'].iloc[pred_idx]
+        val_data[0], _ = load_sequence_data(paths=paths, shape_of_image=input_shape[1:])
+        predictions[label_type].iloc[pred_idx]=model.predict(x=val_data, batch_size=1)
+    # so, now we have predictions in 'windowed' view
+    # now need to average it and transform to view of ground truth labels (timestep,frame,label_type)
+    averaged=average_windowed_labels(predictions, label_type)
+    ground_truth=ground_truth.sort_values(['frame','timestep'])
+    averaged = averaged.sort_values(['frame', 'timestep'])
+    metric=sklearn.metrics.mean_squared_error(ground_truth[label_type],averaged[label_type])
+    return metric
+
+def average_windowed_labels(labels, label_type):
+    # columns of labels dataframe:
+    tmp_labels=pd.DataFrame(columns=['timestep','frame',label_type])
+    # unpacking labels
+    tmp_label_idx=0
+    for labels_idx in range(labels.shape[0]):
+        paths=labels['list_filenames_images'].iloc[labels_idx]
+        frames=list(map(lambda x: x.split('\\')[-1].split('.')[0],paths))
+        timesteps=labels['timesteps'].iloc[labels_idx]
+        label_values=labels[label_type].iloc[labels_idx]
+        tmp=pd.DataFrame(columns=tmp_labels.columns,data=np.concatenate((np.array(timesteps).reshape(-1,1), np.array(frames).reshape(-1,1), np.array(label_values).reshape(-1,1)), axis=1))
+        tmp_labels=tmp_labels.append(tmp)
+    # calculate mean for each timestep
+    tmp_labels['timestep']=tmp_labels['timestep'].astype('float32')
+    tmp_labels[label_type]=tmp_labels[label_type].astype('float32')
+    tmp_labels['timestep']=tmp_labels['timestep'].round(3)
+    averaged=tmp_labels.groupby(['frame','timestep']).mean().reset_index()
+    return averaged
 
 '''path_to_data=r'D:\DB\RECOLA\processed\data\P16/'
 path_to_label=r'D:\DB\RECOLA\processed\final_labels\P16.csv'
