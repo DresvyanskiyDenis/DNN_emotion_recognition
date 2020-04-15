@@ -36,21 +36,21 @@ height=224
 channels=3
 image_shape=(width, height, channels)
 input_shape=(sequence_length, width, height, channels)
-labels_type='arousal'
+labels_type='valence'
 epochs=10
 batch_size=2
 verbose=2
 # Model
-path_to_weights='C:\\Users\\Denis\\PycharmProjects\\DNN_emotion_recognition\\AffectNet\\model_weights\\weights_'+labels_type+'.h5'
+path_to_weights='C:\\Users\\Denis\\PycharmProjects\\DNN_emotion_recognition\\model_weights\\weights_'+labels_type+'.h5'
 model=model_AffectNet_with_reccurent(input_dim=input_shape, path_to_weights=path_to_weights, trained_AffectNet=True)
 
 model.compile(optimizer='Adam',loss='mse', sample_weight_mode='temporal')
 print(model.summary())
 
 train_labels=pd.concat((SEWA_labels, SEMAINE_labels), axis=0)
-train_labels.drop(columns=['valence'], inplace=True)
+train_labels.drop(columns=['arousal'], inplace=True)
 # calculate intervals for training
-number_of_intervals=12709
+number_of_intervals=11500
 step=train_labels.shape[0]/number_of_intervals
 points_train_data_list=[0]
 for i in range(number_of_intervals):
@@ -60,7 +60,10 @@ if points_train_data_list[-1]!=train_labels.shape[0]:
 
 # train process
 old_result=100000000
-for epoch in range(epochs):
+train_history=np.zeros(shape=(number_of_intervals*epochs,1))
+val_history=np.zeros((epochs,))
+idx=0
+for epoch in range(1,epochs+1):
     train_data=None
     train_labels=train_labels.iloc[np.random.permutation(len(train_labels))]
     for i in range(1, len(points_train_data_list)):
@@ -76,5 +79,22 @@ for epoch in range(epochs):
             train_lbs[train_data_idx]=train_labels[labels_type].iloc[train_labels_idx][0]
         train_data = train_data.astype('float32')
         train_lbs=train_lbs[..., np.newaxis]
-        model.fit(x=train_data, y=train_lbs, batch_size=batch_size, epochs=1, verbose=verbose, sample_weight=train_data_weights)
+        hist=model.fit(x=train_data, y=train_lbs, batch_size=batch_size, epochs=1, verbose=verbose, sample_weight=train_data_weights)
+        train_history[idx,0]=hist.history['loss'][0]
+        idx+=1
+        if i==10:
+            val_score=calculate_performance_on_validation(model,RECOLA_labels,path_to_labels_RECOLA, labels_type,input_shape)
+            print("----------------------------val_score:", val_score)
     val_score=calculate_performance_on_validation(model,RECOLA_labels,path_to_labels_RECOLA, labels_type,input_shape)
+    val_history[epoch]=val_score
+    if val_score<=old_result:
+        old_result=val_score
+        model.save_weights(path_to_save_best_model+'model_'+labels_type+'_recurrent.h5')
+
+    path_to_stats = 'stats\\'
+    if not os.path.exists(path_to_stats):
+        os.mkdir(path_to_stats)
+    to_save = pd.DataFrame(columns=['train_loss'], data=train_history)
+    to_save.to_csv(path_to_stats + "train_history.csv")
+    to_save = pd.DataFrame(columns=['val_loss'], data=val_history)
+    to_save.to_csv(path_to_stats + "val_history.csv")

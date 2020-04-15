@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 import numpy as np
-import sklearn
+from sklearn.metrics import mean_squared_error
 
 from AffectNet.train.Train_on_AffectNet.VGGface2.src.utils import load_preprocess_image
 
@@ -48,7 +48,7 @@ def transform_labels_to_windowed_labels(path_to_data,labels, size_window, step):
     new_labels['arousal']=new_labels['arousal'].astype('object')
     new_labels['valence'] = new_labels['valence'].astype('object')
     for window_index in range(num_windows-1):
-        new_labels['videofile'].iloc[window_index]=path_to_data.split('\\')[-1]
+        new_labels['videofile'].iloc[window_index]=path_to_data.split('\\')[-2]
         new_labels['window'].iloc[window_index]=window_index
         new_labels['list_filenames_images'].iloc[window_index]=[path_to_data+labels['frame'].iloc[i]+'.png' for i in range(start_point,start_point+size_window)]
         new_labels['timesteps'].iloc[window_index]=[np.array(labels['timestep'].iloc[start_point:(start_point+size_window)]).reshape((-1))]
@@ -56,7 +56,7 @@ def transform_labels_to_windowed_labels(path_to_data,labels, size_window, step):
         new_labels['valence'].iloc[window_index] = [np.array(labels[['valence']].iloc[start_point:(start_point + size_window)]).reshape((-1))]
         start_point+=step
     window_index=num_windows-1
-    new_labels['videofile'].iloc[window_index] = path_to_data.split('\\')[-1]
+    new_labels['videofile'].iloc[window_index] = path_to_data.split('\\')[-2]
     new_labels['window'].iloc[window_index] = window_index
     new_labels['list_filenames_images'].iloc[window_index] = [path_to_data + labels['frame'].iloc[i] + '.png' for i in range(end_point-size_window, end_point)]
     new_labels['timesteps'].iloc[window_index] = [np.array(labels[['timestep']].iloc[(end_point - size_window):end_point]).reshape((-1))]
@@ -121,6 +121,7 @@ def calculate_performance_on_validation(model,val_labels, path_to_ground_truth_l
     elif label_type=='valence': predictions.drop(columns=['arousal'], inplace=True)
     # make predictions for windows
     for pred_idx in range(predictions.shape[0]):
+        print(pred_idx, "   ", predictions.shape[0])
         paths = predictions['list_filenames_images'].iloc[pred_idx]
         val_data[0], _ = load_sequence_data(paths=paths, shape_of_image=input_shape[1:])
         predictions[label_type].iloc[pred_idx]=model.predict(x=val_data, batch_size=1)
@@ -129,7 +130,8 @@ def calculate_performance_on_validation(model,val_labels, path_to_ground_truth_l
     averaged=average_windowed_labels(predictions, label_type)
     ground_truth=ground_truth.sort_values(['frame','timestep'])
     averaged = averaged.sort_values(['frame', 'timestep'])
-    metric=sklearn.metrics.mean_squared_error(ground_truth[label_type],averaged[label_type])
+    averaged = averaged[averaged['frame']!='NO_FACE']
+    metric=mean_squared_error(ground_truth[label_type],averaged[label_type])
     return metric
 
 def average_windowed_labels(labels, label_type):

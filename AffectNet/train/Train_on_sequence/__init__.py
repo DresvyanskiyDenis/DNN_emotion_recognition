@@ -1,4 +1,6 @@
-from AffectNet.train.Train_on_AffectNet.VGGface2.src.model import model_AffectNet_with_reccurent
+
+
+'''from AffectNet.train.Train_on_AffectNet.VGGface2.src.model import model_AffectNet_with_reccurent
 from AffectNet.train.Train_on_sequence.preprocessing_utils import calculate_performance_on_validation, load_labels
 
 size_window=50
@@ -22,4 +24,4 @@ SEWA_labels=load_labels(path_to_data_SEWA, path_to_labels_SEWA, size_window, ste
 SEWA_labels=SEWA_labels.iloc[30:40]
 
 res=calculate_performance_on_validation(model, val_labels=SEWA_labels, path_to_ground_truth_labels='',
-                                        label_type=labels_type, input_shape=input_shape)
+                                        label_type=labels_type, input_shape=input_shape)'''
