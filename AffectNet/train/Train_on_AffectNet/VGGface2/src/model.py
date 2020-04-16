@@ -61,7 +61,7 @@ def model_AffectNet_with_reccurent(input_dim, path_to_weights, trained_AffectNet
     new_model=Sequential()
     new_model.add(TimeDistributed(tmp_model, input_shape=input_dim))
     new_model.add(LSTM(512, return_sequences=True))
-    new_model.add(LSTM(256, return_sequences=True))
+    new_model.add(LSTM(512, return_sequences=True))
     new_model.add(Dense(1, activation='linear', name='output_arousal'))
     '''timeDistributed_layer = TimeDistributed(tmp_model)(new_input)
     lstm1 = LSTM(512, return_sequences=True)(timeDistributed_layer)

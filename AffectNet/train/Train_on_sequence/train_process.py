@@ -24,9 +24,9 @@ step=10
 RECOLA_labels=load_labels(path_to_data_RECOLA, path_to_labels_RECOLA, size_window, step)
 #RECOLA_labels=delete_windows_with_many_no_face(RECOLA_labels, 0.3)
 SEWA_labels=load_labels(path_to_data_SEWA, path_to_labels_SEWA, size_window, step)
-SEWA_labels=delete_windows_with_many_no_face(SEWA_labels, 0.3)
+SEWA_labels=delete_windows_with_many_no_face(SEWA_labels, 0.1)
 SEMAINE_labels=labels=load_labels(path_to_data_SEMAINE, path_to_labels_SEMAINE, size_window, step)
-SEMAINE_labels=delete_windows_with_many_no_face(SEMAINE_labels, 0.3)
+SEMAINE_labels=delete_windows_with_many_no_face(SEMAINE_labels, 0.1)
 
 
 # params
@@ -50,7 +50,7 @@ print(model.summary())
 train_labels=pd.concat((SEWA_labels, SEMAINE_labels), axis=0)
 train_labels.drop(columns=['arousal'], inplace=True)
 # calculate intervals for training
-number_of_intervals=11500
+number_of_intervals=11037
 step=train_labels.shape[0]/number_of_intervals
 points_train_data_list=[0]
 for i in range(number_of_intervals):
@@ -77,16 +77,15 @@ for epoch in range(1,epochs+1):
             paths=train_labels['list_filenames_images'].iloc[train_labels_idx]
             train_data[train_data_idx], train_data_weights[train_data_idx]=load_sequence_data(paths=paths, shape_of_image=image_shape)
             train_lbs[train_data_idx]=train_labels[labels_type].iloc[train_labels_idx][0]
+            train_data_idx=+1
         train_data = train_data.astype('float32')
         train_lbs=train_lbs[..., np.newaxis]
         hist=model.fit(x=train_data, y=train_lbs, batch_size=batch_size, epochs=1, verbose=verbose, sample_weight=train_data_weights)
         train_history[idx,0]=hist.history['loss'][0]
         idx+=1
-        if i==10:
-            val_score=calculate_performance_on_validation(model,RECOLA_labels,path_to_labels_RECOLA, labels_type,input_shape)
-            print("----------------------------val_score:", val_score)
     val_score=calculate_performance_on_validation(model,RECOLA_labels,path_to_labels_RECOLA, labels_type,input_shape)
-    val_history[epoch]=val_score
+    print("----------------------------val_score:", val_score)
+    val_history[epoch-1]=val_score
     if val_score<=old_result:
         old_result=val_score
         model.save_weights(path_to_save_best_model+'model_'+labels_type+'_recurrent.h5')
