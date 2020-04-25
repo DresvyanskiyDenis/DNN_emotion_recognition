@@ -12,10 +12,10 @@ from AffectNet.train.Train_on_AffectNet.VGGface2.src.utils import load_preproces
 path_to_save_best_model= 'best_model/'
 if not os.path.exists(path_to_save_best_model):
     os.mkdir(path_to_save_best_model)
-path_to_train_labels='C:\\Users\\Dresvyanskiy\\Desktop\\Databases\\AffectNet\\train\\train_labels_copy.csv'
-path_to_train_images='C:\\Users\\Dresvyanskiy\\Desktop\\Databases\\AffectNet\\train\\resized\\'
-path_to_validation_labels='C:\\Users\\Dresvyanskiy\\Desktop\\Databases\\AffectNet\\validation\\validation_labels.csv'
-path_to_validation_images='C:\\Users\\Dresvyanskiy\\Desktop\\Databases\\AffectNet\\validation\\resized\\'
+path_to_train_labels='C:\\Users\\Denis\\Desktop\\AffectNet\\DB\\train\\train_labels.csv'
+path_to_train_images='C:\\Users\\Denis\\Desktop\\AffectNet\\DB\\train\\resized\\resized\\'
+path_to_validation_labels='C:\\Users\\Denis\\Desktop\\AffectNet\\DB\\validation\\validation_labels.csv'
+path_to_validation_images='C:\\Users\\Denis\\Desktop\\AffectNet\\DB\\validation\\resized\\'
 width=224
 height=224
 channels=3
@@ -31,21 +31,21 @@ for i in range(validation_labels.shape[0]):
 
 
 # Model
-path_to_weights= 'C:\\Users\\Dresvyanskiy\\Desktop\\Projects\\Resnet_model\\model\\resnet50_softmax_dim512\\weights.h5'
+path_to_weights= r'C:\Users\Denis\Desktop\AffectNet\Resnet_model\model\resnet50_softmax_dim512\\weights.h5'
 
 model=model_AffectNet(input_dim=image_shape, path_to_weights=path_to_weights, trained=False)
 for i in range(len(model.layers)):
     model.layers[i].trainable=False
 for i in range(141,len(model.layers)):
-    model.layers[i].trainable=False
+    model.layers[i].trainable=True
 model.compile(optimizer='Adam', loss='mse')
 print(model.summary())
 # Train params
-batch_size=25
+batch_size=64
 epochs=10
 verbose=2
 # calculate intervals for training
-number_of_intervals=10
+number_of_intervals=100
 step=train_labels.shape[0]/number_of_intervals
 points_train_data_list=[0]
 for i in range(number_of_intervals):
@@ -67,12 +67,12 @@ for epoch in range(epochs):
             train_data[idx_train_data]=load_preprocess_image(path=path_to_train_images+train_labels.index[idx_for_path])
             idx_train_data+=1
         train_data=train_data.astype('float32')
-        lbs=train_labels[['arousal', 'valence']].iloc[points_train_data_list[i-1]:points_train_data_list[i]]
+        lbs=train_labels[['arousal']].iloc[points_train_data_list[i-1]:points_train_data_list[i]]
         model.fit(x=train_data,y=lbs,batch_size=batch_size,epochs=1,verbose=verbose)
-    results = model.evaluate(x=validation_data, y=validation_labels[['arousal', 'valence']], verbose=2)
+    results = model.evaluate(x=validation_data, y=validation_labels[['arousal']], verbose=2)
     if results < old_result:
         old_result = results
-        model.save_weights(path_to_save_best_model+'weights_arousal.h5')
-        model.save(path_to_save_best_model+'model.h5')
+        #model.save_weights(path_to_save_best_model+'weights_arousal.h5')
+        #model.save(path_to_save_best_model+'model.h5')
     print('mse on validation data:', results)
 
