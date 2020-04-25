@@ -100,7 +100,7 @@ def load_ground_truth_labels(path_to_labels, label_type):
         if 'SEW' in file or 'SEM' in file:
             labels = labels.iloc[::8]  # to make timestep equal 0.16 (originally is 0.02)
         else:
-            labels = labels.iloc[::4]
+            labels = labels.iloc[::4]  # to make timestep equal 0.16 (originally is 0.04)
         if flag_for_result==False:
             result=labels
             flag_for_result=True
@@ -121,7 +121,7 @@ def calculate_performance_on_validation(model,val_labels, path_to_ground_truth_l
     elif label_type=='valence': predictions.drop(columns=['arousal'], inplace=True)
     # make predictions for windows
     for pred_idx in range(predictions.shape[0]):
-        print(pred_idx, "   ", predictions.shape[0])
+        #print(pred_idx, "   ", predictions.shape[0])
         paths = predictions['list_filenames_images'].iloc[pred_idx]
         val_data[0], _ = load_sequence_data(paths=paths, shape_of_image=input_shape[1:])
         predictions[label_type].iloc[pred_idx]=model.predict(x=val_data, batch_size=1)
