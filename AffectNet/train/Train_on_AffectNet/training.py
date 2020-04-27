@@ -53,6 +53,7 @@ for i in range(number_of_intervals):
 if points_train_data_list[-1]!=train_labels.shape[0]:
     points_train_data_list[-1]=train_labels.shape[0]
 
+
 # train process
 old_result=100000000
 for epoch in range(epochs):

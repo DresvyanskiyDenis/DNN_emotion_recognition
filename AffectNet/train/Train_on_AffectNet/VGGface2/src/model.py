@@ -16,7 +16,7 @@ def Vggface2_ResNet50(input_dim=(224, 224, 3), nb_classes=8631, mode='with_last_
     # AvgPooling
     x = keras.layers.AveragePooling2D((7, 7), name='avg_pool')(x)
     x = keras.layers.Flatten(name='flatten')(x)
-    x = keras.layers.Dense(512, activation='relu', name='dim_proj')(x)
+    x = keras.layers.Dense(512, activation='relu',kernel_regularizer=regularizers.l2(0.0001), name='dim_proj')(x)
 
     if mode == 'with_last_layer':
         y = keras.layers.Dense(nb_classes, activation='softmax',
@@ -43,7 +43,7 @@ def model_AffectNet(input_dim, path_to_weights, mode='with_last_layer', trained=
     tmp_model = Vggface2_ResNet50(input_dim=input_dim, mode=mode)
     if trained==False: tmp_model.load_weights(path_to_weights)
     last_layer = tmp_model.get_layer('dim_proj').output
-    out = Dense(1, activation='linear', kernel_regularizer=regularizers.l2(0.0001), name='arousal_valence')(last_layer)
+    out = Dense(1, activation='tanh', kernel_regularizer=regularizers.l2(0.0001), name='arousal_or_valence')(last_layer)
     model = Model(inputs=tmp_model.inputs, outputs=out)
     if trained==True: model.load_weights(path_to_weights)
     return model
