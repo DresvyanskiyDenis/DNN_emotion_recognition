@@ -75,7 +75,7 @@ for epoch in range(epochs):
         lbs=train_labels[['arousal']].iloc[points_train_data_list[i-1]:points_train_data_list[i]]
         hist=model.fit(x=train_data,y=lbs,batch_size=batch_size,epochs=1,verbose=verbose)
         train_loss.append(hist.history['loss'][0])
-        if len(points_train_data_list)%15==0:
+        if i%15==0:
             results = model.evaluate(x=validation_data, y=validation_labels[['arousal']], verbose=2)
             val_loss.append(results)
             if results < old_result:
