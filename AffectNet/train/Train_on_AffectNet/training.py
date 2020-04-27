@@ -45,7 +45,7 @@ batch_size=32
 epochs=10
 verbose=2
 # calculate intervals for training
-number_of_intervals=300
+number_of_intervals=30
 step=train_labels.shape[0]/number_of_intervals
 points_train_data_list=[0]
 for i in range(number_of_intervals):
@@ -75,13 +75,14 @@ for epoch in range(epochs):
         lbs=train_labels[['arousal']].iloc[points_train_data_list[i-1]:points_train_data_list[i]]
         hist=model.fit(x=train_data,y=lbs,batch_size=batch_size,epochs=1,verbose=verbose)
         train_loss.append(hist.history['loss'][0])
-    results = model.evaluate(x=validation_data, y=validation_labels[['arousal']], verbose=2)
-    val_loss.append(results)
-    if results < old_result:
-        old_result = results
-        model.save_weights(path_to_save_best_model+'weights_arousal.h5')
-        model.save(path_to_save_best_model+'model.h5')
-    print('mse on validation data:', results)
-    pd.DataFrame(columns=['val_loss'], data=val_loss).to_csv(path_to_stats+'val_loss.csv')
-    pd.DataFrame(columns=['train_loss'], data=train_loss).to_csv(path_to_stats + 'train_loss.csv')
+        if len(points_train_data_list)%15==0:
+            results = model.evaluate(x=validation_data, y=validation_labels[['arousal']], verbose=2)
+            val_loss.append(results)
+            if results < old_result:
+                old_result = results
+                model.save_weights(path_to_save_best_model+'weights_arousal.h5')
+                model.save(path_to_save_best_model+'model.h5')
+            print('mse on validation data:', results)
+            pd.DataFrame(columns=['val_loss'], data=val_loss).to_csv(path_to_stats+'val_loss.csv')
+            pd.DataFrame(columns=['train_loss'], data=train_loss).to_csv(path_to_stats + 'train_loss.csv')
 
