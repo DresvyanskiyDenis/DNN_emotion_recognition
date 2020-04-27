@@ -36,16 +36,16 @@ path_to_weights= r'C:\Users\Denis\Desktop\AffectNet\Resnet_model\model\resnet50_
 model=model_AffectNet(input_dim=image_shape, path_to_weights=path_to_weights, trained=False)
 for i in range(len(model.layers)):
     model.layers[i].trainable=False
-for i in range(141,len(model.layers)):
+for i in range(79,len(model.layers)):
     model.layers[i].trainable=True
-model.compile(optimizer='Adam', loss='mse')
+model.compile(optimizer='Nadam', loss='mse')
 print(model.summary())
 # Train params
-batch_size=64
+batch_size=32
 epochs=10
 verbose=2
 # calculate intervals for training
-number_of_intervals=100
+number_of_intervals=300
 step=train_labels.shape[0]/number_of_intervals
 points_train_data_list=[0]
 for i in range(number_of_intervals):
@@ -53,10 +53,14 @@ for i in range(number_of_intervals):
 if points_train_data_list[-1]!=train_labels.shape[0]:
     points_train_data_list[-1]=train_labels.shape[0]
 
-
+val_loss=[]
+train_loss=[]
+path_to_stats='stats/'
+if not os.path.exists(path_to_stats): os.mkdir(path_to_stats)
 # train process
 old_result=100000000
 for epoch in range(epochs):
+    if (epoch+1)%5==0: batch_size/=2
     train_data=None
     train_labels=train_labels.iloc[np.random.permutation(len(train_labels))]
     for i in range(1, len(points_train_data_list)):
@@ -69,11 +73,15 @@ for epoch in range(epochs):
             idx_train_data+=1
         train_data=train_data.astype('float32')
         lbs=train_labels[['arousal']].iloc[points_train_data_list[i-1]:points_train_data_list[i]]
-        model.fit(x=train_data,y=lbs,batch_size=batch_size,epochs=1,verbose=verbose)
+        hist=model.fit(x=train_data,y=lbs,batch_size=batch_size,epochs=1,verbose=verbose)
+        train_loss.append(hist.history['loss'][0])
     results = model.evaluate(x=validation_data, y=validation_labels[['arousal']], verbose=2)
+    val_loss.append(results)
     if results < old_result:
         old_result = results
-        #model.save_weights(path_to_save_best_model+'weights_arousal.h5')
-        #model.save(path_to_save_best_model+'model.h5')
+        model.save_weights(path_to_save_best_model+'weights_arousal.h5')
+        model.save(path_to_save_best_model+'model.h5')
     print('mse on validation data:', results)
+    pd.DataFrame(columns=['val_loss'], data=val_loss).to_csv(path_to_stats+'val_loss.csv')
+    pd.DataFrame(columns=['train_loss'], data=train_loss).to_csv(path_to_stats + 'train_loss.csv')
 
