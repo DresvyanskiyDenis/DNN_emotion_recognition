@@ -9,26 +9,15 @@ from keras.layers import Dense
 from AffectNet.train.Train_on_AffectNet.VGGface2.src.model import  model_AffectNet
 from AffectNet.train.Train_on_AffectNet.VGGface2.src.utils import load_preprocess_image
 
+
+
 path_to_save_best_model= 'best_model/'
 if not os.path.exists(path_to_save_best_model):
     os.mkdir(path_to_save_best_model)
-path_to_train_labels='C:\\Users\\Denis\\Desktop\\AffectNet\\DB\\train\\train_labels.csv'
-path_to_train_images='C:\\Users\\Denis\\Desktop\\AffectNet\\DB\\train\\resized\\resized\\'
-path_to_validation_labels='C:\\Users\\Denis\\Desktop\\AffectNet\\DB\\validation\\validation_labels.csv'
-path_to_validation_images='C:\\Users\\Denis\\Desktop\\AffectNet\\DB\\validation\\resized\\'
 width=224
 height=224
 channels=3
 image_shape=(height, width, channels)
-
-train_labels=pd.read_csv(path_to_train_labels, sep=',')
-train_labels.set_index('subDirectory_filePath', inplace=True)
-validation_labels=pd.read_csv(path_to_validation_labels, sep=',')
-validation_labels.set_index('subDirectory_filePath',inplace=True)
-validation_data=np.zeros(shape=(validation_labels.shape[0],)+image_shape)
-for i in range(validation_labels.shape[0]):
-    validation_data[i]=load_preprocess_image(path_to_validation_images+validation_labels.index[i])
-
 
 # Model
 path_to_weights= r'C:\Users\Denis\Desktop\AffectNet\Resnet_model\model\resnet50_softmax_dim512\\weights.h5'
@@ -41,9 +30,65 @@ for i in range(79,len(model.layers)):
 model.compile(optimizer='Nadam', loss='mse')
 print(model.summary())
 # Train params
-batch_size=32
-epochs=10
+batch_size=256
+epochs=15
 verbose=2
+label_type='valence'
+val_loss=[]
+train_loss=[]
+path_to_stats='stats/'
+if not os.path.exists(path_to_stats): os.mkdir(path_to_stats)
+
+# set up
+path_to_data=''
+train_data_prefix='train_data_batch'
+train_labels_prefix='train_labels_batch'
+validation_data_prefix='validation_data'
+validation_labels_prefix='validation_labels'
+# check how much batches we have and then create a list of num batches
+files=np.array(os.listdir(path_to_data))
+files=files[train_data_prefix in files]
+num_batches=files.shape[0]
+# create a list of paths to batches
+train_data_batches=[]
+train_labels_batches=[]
+for i in range(num_batches):
+    train_data_batches.append(path_to_data+train_data_prefix+str(i)+'.npy')
+    train_labels_batches.append(path_to_data+train_labels_prefix+str(i)+'.csv')
+train_data_batches=np.array(train_data_batches)
+train_labels_batches=np.array(train_labels_batches)
+# training process
+for epoch in range(epochs):
+    permutations=np.random.permutation(train_data_batches.shape[0])
+    train_data_batches=train_data_batches[permutations]
+    train_labels_batches=train_labels_batches[permutations]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+train_labels=pd.read_csv(path_to_train_labels, sep=',')
+train_labels.set_index('subDirectory_filePath', inplace=True)
+
+validation_labels=pd.read_csv(path_to_validation_labels, sep=',')
+validation_labels.set_index('subDirectory_filePath',inplace=True)
+validation_data=np.zeros(shape=(validation_labels.shape[0],)+image_shape)
+for i in range(validation_labels.shape[0]):
+    validation_data[i]=load_preprocess_image(path_to_validation_images+validation_labels.index[i])
+
 # calculate intervals for training
 number_of_intervals=30
 step=train_labels.shape[0]/number_of_intervals
@@ -52,14 +97,8 @@ for i in range(number_of_intervals):
     points_train_data_list.append(int(points_train_data_list[-1]+step))
 if points_train_data_list[-1]!=train_labels.shape[0]:
     points_train_data_list[-1]=train_labels.shape[0]
-
-val_loss=[]
-train_loss=[]
-path_to_stats='stats/'
-if not os.path.exists(path_to_stats): os.mkdir(path_to_stats)
-# train process
 old_result=100000000
-validation_every_steps=10
+validation_every_num_batch=512
 for epoch in range(epochs):
     if (epoch+1)%4==0:
         batch_size=int(batch_size/2)
