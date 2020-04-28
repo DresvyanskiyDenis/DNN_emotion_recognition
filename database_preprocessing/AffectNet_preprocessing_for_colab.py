@@ -29,7 +29,7 @@ image_shape=(height, width, channels)
 path_to_save_mini_batches='../mini_batches/'
 if not os.path.exists(path_to_save_mini_batches):
     os.mkdir(path_to_save_mini_batches)
-mini_batch_size=256
+mini_batch_size=1024
 
 # validation data
 validation_labels=pd.read_csv(path_to_validation_labels, sep=',')
@@ -42,6 +42,8 @@ validation_data=validation_data.astype('uint8')
 
 np.save(path_to_save_mini_batches+'validation_data', arr=validation_data)
 validation_labels.to_csv(path_to_save_mini_batches+'validation_labels.csv')
+
+del validation_data
 
 # train labels and paths for data
 train_labels=pd.read_csv(path_to_train_labels, sep=',')
@@ -65,8 +67,7 @@ while start_point+mini_batch_size<train_labels.shape[0]:
 end_point=train_labels.shape[0]
 data=np.empty(shape=(0,)+image_shape)
 for i in range(start_point, end_point):
-    for i in range(start_point, end_point):
-        data = np.append(data,load_image(path_to_train_images+train_labels.index[i]), axis=0)
+    data = np.append(data,load_image(path_to_train_images+train_labels.index[i]), axis=0)
 data = data.astype('uint8')
 lbs = train_labels.iloc[start_point:end_point]
 np.save(path_to_save_mini_batches+'train_data_batch_'+str(mini_batch_num),arr=data)
