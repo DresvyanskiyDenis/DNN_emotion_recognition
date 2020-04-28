@@ -59,8 +59,11 @@ path_to_stats='stats/'
 if not os.path.exists(path_to_stats): os.mkdir(path_to_stats)
 # train process
 old_result=100000000
+validation_every_steps=10
 for epoch in range(epochs):
-    if (epoch+1)%5==0: batch_size/=2
+    if (epoch+1)%4==0:
+        batch_size=int(batch_size/2)
+        validation_every_steps=int(validation_every_steps/2)
     train_data=None
     train_labels=train_labels.iloc[np.random.permutation(len(train_labels))]
     for i in range(1, len(points_train_data_list)):
@@ -75,8 +78,8 @@ for epoch in range(epochs):
         lbs=train_labels[['arousal']].iloc[points_train_data_list[i-1]:points_train_data_list[i]]
         hist=model.fit(x=train_data,y=lbs,batch_size=batch_size,epochs=1,verbose=verbose)
         train_loss.append(hist.history['loss'][0])
-        if i%15==0:
-            results = model.evaluate(x=validation_data, y=validation_labels[['arousal']], verbose=2)
+        if (i+1)%int(validation_every_steps)==0:
+            results = model.evaluate(x=validation_data, y=validation_labels[['arousal']], verbose=2, batch_size=batch_size)
             val_loss.append(results)
             if results < old_result:
                 old_result = results
