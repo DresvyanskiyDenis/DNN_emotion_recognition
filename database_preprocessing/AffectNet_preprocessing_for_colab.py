@@ -29,7 +29,7 @@ image_shape=(height, width, channels)
 path_to_save_mini_batches='../mini_batches/'
 if not os.path.exists(path_to_save_mini_batches):
     os.mkdir(path_to_save_mini_batches)
-mini_batch_size=256
+mini_batch_size=2560
 
 # validation data
 validation_labels=pd.read_csv(path_to_validation_labels, sep=',')
