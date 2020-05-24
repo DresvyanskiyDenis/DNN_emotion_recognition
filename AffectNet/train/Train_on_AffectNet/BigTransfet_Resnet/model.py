@@ -17,7 +17,7 @@ def create_AffectNet_model(input_shape_for_ResNet, input_shape_FAU, path_to_Resn
     dense_1=tf.keras.layers.Dense(512, 'relu')(concat)
     output= tf.keras.layers.Dense(1, 'tanh')(dense_1)
     result_model=tf.keras.Model(inputs=[model.inputs, FAU_input], outputs=[output])
-    result_model.summary()
+    #result_model.summary()
     return result_model
 
 
