@@ -76,9 +76,11 @@ def main():
     val_indexes=check_existence_FAU(path_to_validation_FAUs, validation_labels, start_point=0, end_point=validation_labels.shape[0])
     validation_data=np.zeros(shape=(val_indexes.shape[0],)+image_shape)
     validation_FAUs=np.zeros(shape=(val_indexes.shape[0], num_FAUs))
+    data_idx=0
     for idx in val_indexes:
-        validation_data[idx]=load_image(path_to_validation_images+validation_labels.index[idx])
-        validation_FAUs[idx]=load_FAU(path_to_validation_FAUs+validation_labels.index[idx].split('.')[0]+'.csv')
+        validation_data[data_idx]=load_image(path_to_validation_images+validation_labels.index[idx])
+        validation_FAUs[data_idx]=load_FAU(path_to_validation_FAUs+validation_labels.index[idx].split('.')[0]+'.csv')
+        data_idx+=1
     validation_data=validation_data.astype('uint8')
     np.save(path_to_save_mini_batches+'validation_FAU', arr=validation_FAUs)
     np.save(path_to_save_mini_batches+'validation_data', arr=validation_data)
@@ -114,8 +116,8 @@ def main():
     for i in range(start_point, end_point):
         for i in range(start_point, end_point):
             if os.path.exists(path_to_train_FAUs+train_labels.index[i].split('.')[0]+'.csv'):
-                data = np.append(data,load_image(path_to_train_images+train_labels.index[i]), axis=0)
-                FAUs = np.append(FAUs, load_FAU(path_to_train_FAUs+train_labels.index[i].split('.')[0]+'.csv'))
+                data = np.append(data, load_image(path_to_train_images+train_labels.index[i])[np.newaxis,...], axis=0)
+                FAUs = np.append(FAUs, load_FAU(path_to_train_FAUs+train_labels.index[i].split('.')[0]+'.csv')[np.newaxis,...], axis=0)
     data = data.astype('uint8')
     FAUs= FAUs.astype('float32')
     lbs = train_labels.iloc[start_point:end_point]
@@ -125,9 +127,9 @@ def main():
 
 
 if __name__ == "__main__":
-    #main()
-    path_to_openFace='C:/Users/Dresvyanskiy/Desktop/Projects/OpenFace/'
+    main()
+'''    path_to_openFace='C:/Users/Dresvyanskiy/Desktop/Projects/OpenFace/'
     path_to_dir_with_dirs='D:/Databases/AffectNet/prepared/validation/resized/'
     path_to_output='D:/Databases/AffectNet/FAU/validation/'
     extract_FAU_from_list_of_dirs(path_to_openFace=path_to_openFace, path_to_dir_with_dirs=path_to_dir_with_dirs,
-                                  path_to_output=path_to_output)
+                                  path_to_output=path_to_output)'''
