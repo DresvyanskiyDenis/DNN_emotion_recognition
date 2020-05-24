@@ -20,6 +20,8 @@ def load_data_and_preprocess(path_to_data, path_to_FAU, path_to_labels):
     labels=pd.read_csv(path_to_labels, index_col=0)
     for i in range(data.shape[0]):
         data[i]=normalize_image(data[i])
+    data=data.astype('float32')
+    FAUs=FAUs.astype('float32')
     return data, FAUs, labels
 
 path_to_save_best_model= 'best_model/'
