@@ -31,7 +31,7 @@ def create_batch(path_to_data, path_to_FAUs, labels, start_point, end_point, ima
         data_idx += 1
     data = data.astype('uint8')
     FAUs = FAUs.astype('float32')
-    lbs = labels.iloc[start_point:end_point]
+    lbs = labels.iloc[indexes]
     return data, FAUs,lbs
 
 def extract_FAU_from_list_of_dirs(path_to_openFace, path_to_dir_with_dirs, path_to_output):
@@ -85,7 +85,9 @@ def main():
     np.save(path_to_save_mini_batches+'validation_FAU', arr=validation_FAUs)
     np.save(path_to_save_mini_batches+'validation_data', arr=validation_data)
     validation_labels = validation_labels.drop(columns=validation_labels.columns.difference(['valence', 'arousal']))
+    validation_labels =validation_labels.iloc[val_indexes]
     validation_labels.to_csv(path_to_save_mini_batches+'validation_labels.csv')
+    print('validation:',validation_data.shape, validation_FAUs.shape, validation_labels.shape)
 
     # train labels and paths for data
     train_labels=pd.read_csv(path_to_train_labels, sep=',')
@@ -101,6 +103,7 @@ def main():
         end_point=start_point+mini_batch_size
         data,FAUs,lbs = create_batch(path_to_data=path_to_train_images, path_to_FAUs=path_to_train_FAUs,
                                      labels=train_labels, start_point=start_point, end_point=end_point, image_shape=image_shape)
+        print(data.shape, FAUs.shape, lbs.shape, ((data.shape[0]==FAUs.shape[0])==(data.shape[0]==lbs.shape[0]))==(FAUs.shape[0]==lbs.shape[0]))
         np.save(path_to_save_mini_batches+'train_data_batch_'+str(mini_batch_num),arr=data)
         np.save(path_to_save_mini_batches + 'train_FAU_batch_' + str(mini_batch_num), arr=FAUs)
         lbs.to_csv(path_to_save_mini_batches+'train_labels_batch_'+str(mini_batch_num)+'.csv')
@@ -113,14 +116,14 @@ def main():
                                       end_point=end_point)
     data=np.empty(shape=(0,)+image_shape)
     FAUs=np.empty(shape=(0, num_FAUs))
-    for i in range(start_point, end_point):
-        for i in range(start_point, end_point):
-            if os.path.exists(path_to_train_FAUs+train_labels.index[i].split('.')[0]+'.csv'):
-                data = np.append(data, load_image(path_to_train_images+train_labels.index[i])[np.newaxis,...], axis=0)
-                FAUs = np.append(FAUs, load_FAU(path_to_train_FAUs+train_labels.index[i].split('.')[0]+'.csv')[np.newaxis,...], axis=0)
+    indexes=check_existence_FAU(path_to_train_FAUs, train_labels,start_point, end_point)
+    for i in indexes:
+        data = np.append(data, load_image(path_to_train_images+train_labels.index[i])[np.newaxis,...], axis=0)
+        FAUs = np.append(FAUs, load_FAU(path_to_train_FAUs+train_labels.index[i].split('.')[0]+'.csv')[np.newaxis,...], axis=0)
     data = data.astype('uint8')
     FAUs= FAUs.astype('float32')
-    lbs = train_labels.iloc[start_point:end_point]
+    lbs = train_labels.iloc[indexes]
+    print('last:',data.shape, FAUs.shape, lbs.shape)
     np.save(path_to_save_mini_batches+'train_data_batch_'+str(mini_batch_num),arr=data)
     np.save(path_to_save_mini_batches + 'train_FAU_batch_' + str(mini_batch_num), arr=FAUs)
     lbs.to_csv(path_to_save_mini_batches+'train_labels_batch_'+str(mini_batch_num)+'.csv')
