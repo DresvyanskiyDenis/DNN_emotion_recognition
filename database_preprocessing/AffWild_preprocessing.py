@@ -161,7 +161,7 @@ if __name__ == "__main__":
                                      path_to_save_faces=path_to_save_frames,
                                      path_to_save_labels=path_to_save_labels,
                                      new_size=(224,224))'''
-    process_database(path_to_data='C:\\Users\\Dresvyanskiy\\Desktop\\Databases\\Aff_wild\\test\\',
+    process_database(path_to_data='C:\\Users\\Dresvyanskiy\\Desktop\\Databases\\Aff_wild\\Videos\\train\\',
                      path_to_boxes='C:\\Users\\Dresvyanskiy\\Desktop\\Databases\\Aff_wild\\bboxes\\train\\',
                      path_to_labels='C:\\Users\\Dresvyanskiy\\Desktop\\Databases\\Aff_wild\\annotations\\train\\',
-                     path_to_save='D:\\Databases\\Aff_wild\\processed_1\\')
+                     path_to_save='D:\\Databases\\Aff_wild\\processed\\')
