@@ -21,13 +21,13 @@ def extract_face(image):
              or False, if no face found
     '''
     face_locations = face_recognition.face_locations(image)
-    if len(face_locations) > 0:
+    if len(face_locations)==1:
         top, right, bottom, left = face_locations[0]
         face_image = image[top:bottom, left:right]
         im = Image.fromarray(face_image)
         return im
     else:
-        return False
+        return len(face_locations)
 
 
 
@@ -55,7 +55,7 @@ def extract_cropped_faces_from_video(filename_video, path_to_boxes, path_to_labe
         ret, frame = cap.read()
         if ret == False:
             break
-        if format_video=='mp4':
+        if format_video=='mp4' or format_video=='avi':
             frame=cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
         if os.path.exists(path_to_boxes+str(idx_frame)+'.pts'):
             pts=load_pts(path_to_boxes+str(idx_frame)+'.pts')
@@ -76,7 +76,7 @@ def extract_cropped_faces_from_video(filename_video, path_to_boxes, path_to_labe
     labels.to_csv(path_to_save_labels+filename_video.split('\\')[-1].split('.')[0]+'.csv', index=False)
 
 
-def extract_cropped_faces_from_video_with_face_extractor(filename_video, path_to_labels, path_to_save_faces='', path_to_save_labels='', new_size=(224,224)):
+def extract_cropped_faces_from_video_with_face_extractor(filename_video, path_to_labels, path_to_boxes, path_to_save_faces='', path_to_save_labels='', new_size=(224,224)):
     # videofile params
     cap = cv2.VideoCapture(filename_video)
     frame_rate = cv2.VideoCapture.get(cap, cv2.CAP_PROP_FPS)
@@ -96,17 +96,26 @@ def extract_cropped_faces_from_video_with_face_extractor(filename_video, path_to
         ret, frame = cap.read()
         if ret == False:
             break
-        if format_video=='mp4':
+        if format_video=='mp4' or format_video=='avi':
             frame=cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
         img=extract_face(frame)
-        if img!=False:
-
-            img=img.resize(new_size, resample=PIL.Image.BILINEAR)
-            frame_filename=filename_video.split('\\')[-1].split('.')[0]+'_'+"%05d"%idx_frame+'.png'
-            img.save(path_to_save_faces+frame_filename)
-            labels.iloc[idx_frame, 1] = frame_filename
+        if img!=1:
+            if os.path.exists(path_to_boxes + str(idx_frame) + '.pts'):
+                pts = load_pts(path_to_boxes + str(idx_frame) + '.pts')
+                x, x_plus, y, y_plus = int(pts[0, 0]), int(pts[2, 0]), int(pts[0, 1]), int(pts[2, 1])
+                img = Image.fromarray(frame)
+                img = img.crop((x, y, x_plus, y_plus))
+                img = img.resize(new_size, resample=PIL.Image.BILINEAR)
+                frame_filename = filename_video.split('\\')[-1].split('.')[0] + '_' + "%05d" % idx_frame + '.png'
+                img.save(path_to_save_faces + frame_filename)
+                labels.iloc[idx_frame, 1] = frame_filename
+            else:
+                labels.iloc[idx_frame, 1] = 'NO_FACE'
         else:
-            labels.iloc[idx_frame, 1] = 'NO_FACE'
+            img = img.resize(new_size, resample=PIL.Image.BILINEAR)
+            frame_filename = filename_video.split('\\')[-1].split('.')[0] + '_' + "%05d" % idx_frame + '.png'
+            img.save(path_to_save_faces + frame_filename)
+            labels.iloc[idx_frame, 1] = frame_filename
         # labels
         labels.iloc[idx_frame, 0]=current_time
         labels.iloc[idx_frame, 2]=arousal[idx_frame]
@@ -115,7 +124,7 @@ def extract_cropped_faces_from_video_with_face_extractor(filename_video, path_to
         current_time+=timestep
     labels.to_csv(path_to_save_labels+filename_video.split('\\')[-1].split('.')[0]+'.csv', index=False)
 
-def process_database(path_to_data, path_to_labels, path_to_save):
+def process_database(path_to_data, path_to_boxes, path_to_labels, path_to_save):
     videofiles=os.listdir(path_to_data)
     if not os.path.exists(path_to_save):
         os.mkdir(path_to_save)
@@ -129,6 +138,7 @@ def process_database(path_to_data, path_to_labels, path_to_save):
         if not os.path.exists(path_to_save+'data\\'+videofile.split('.')[0]):
             os.mkdir(path_to_save+'data\\'+videofile.split('.')[0])
         extract_cropped_faces_from_video_with_face_extractor(filename_video=path_to_data+videofile,
+                                                             path_to_boxes=path_to_boxes+videofile.split('.')[0]+'\\',
                                                              path_to_labels=path_to_labels,
                                                              path_to_save_faces=path_to_save+'data\\'+videofile.split('.')[0]+'\\',
                                                              path_to_save_labels=path_to_save+'final_labels\\',
@@ -151,6 +161,7 @@ if __name__ == "__main__":
                                      path_to_save_faces=path_to_save_frames,
                                      path_to_save_labels=path_to_save_labels,
                                      new_size=(224,224))'''
-    process_database(path_to_data='C:\\Users\\Dresvyanskiy\\Desktop\\Databases\\Aff_wild\\Videos\\train\\',
+    process_database(path_to_data='C:\\Users\\Dresvyanskiy\\Desktop\\Databases\\Aff_wild\\test\\',
+                     path_to_boxes='C:\\Users\\Dresvyanskiy\\Desktop\\Databases\\Aff_wild\\bboxes\\train\\',
                      path_to_labels='C:\\Users\\Dresvyanskiy\\Desktop\\Databases\\Aff_wild\\annotations\\train\\',
-                     path_to_save='D:\\Databases\\Aff_wild\\processed\\')
+                     path_to_save='D:\\Databases\\Aff_wild\\processed_1\\')
