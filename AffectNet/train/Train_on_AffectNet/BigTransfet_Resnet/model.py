@@ -53,33 +53,38 @@ def Vggface2_ResNet50(input_shape):
     return result_model
 
 
-def create_AffectNet_model(input_shape_for_ResNet, input_shape_FAU, path_to_Resnet_model=path_to_ResNet50):
-    model = create_Resnet50_model(input_shape_for_ResNet)
-    FAU_input = tf.keras.Input(shape=input_shape_FAU)
-    concat = tf.keras.layers.concatenate([model.output, FAU_input])
-    dense_1 = tf.keras.layers.Dense(512, activation='tanh')(concat)
-    output = tf.keras.layers.Dense(1, activation='tanh')(dense_1)
-    result_model = tf.keras.Model(inputs=[model.inputs, FAU_input], outputs=[output])
-    # result_model.summary()
-    return result_model
 
 
-def create_AffectNet_model_tmp(input_shape_for_ResNet, input_shape_FAU, path_to_Resnet_model=path_to_ResNet50):
-    model = create_Resnet50_model(input_shape_for_ResNet)
-    # pooling=tf.keras.layers.GlobalAveragePooling2D()(model.output)
-    dense_1 = tf.keras.layers.Dense(256, activation=None,
+def create_AffectNet_model(input_shape_for_ResNet, path_to_Resnet_model=path_to_ResNet50):
+    model = create_Xception(input_shape_for_ResNet)
+    pooling = tf.keras.layers.GlobalAveragePooling2D()(model.output)
+    # dropout_0=tf.keras.layers.Dropout(0.3)(pooling)
+    dense_1 = tf.keras.layers.Dense(1024, activation=None,
                                     kernel_initializer='orthogonal',
-                                    kernel_regularizer=tf.keras.regularizers.l2(0.0001))(model.output)
+                                    kernel_regularizer=tf.keras.regularizers.l2(0.001),
+                                    activity_regularizer=tf.keras.regularizers.l1(0.0001),
+                                    use_bias=False)(pooling)
     dropout_1 = tf.keras.layers.Dropout(0.3)(dense_1)
     activation_1 = tf.keras.layers.LeakyReLU(alpha=0.1)(dropout_1)
-    # dense_2=tf.keras.layers.Dense(128, activation=None,
-    #        kernel_initializer='orthogonal',
-    #        kernel_regularizer=tf.keras.regularizers.l2(0.0001))(activation_1)
-    # activation_2=tf.keras.layers.LeakyReLU(alpha=0.1)(dense_2)
-    output = tf.keras.layers.Dense(1, activation='linear',
-                                   kernel_initializer='orthogonal')(activation_1)
+
+    output = tf.keras.layers.Dense(2, activation='tanh',
+                                   kernel_initializer='orthogonal', use_bias=False)(activation_1)
     result_model = tf.keras.Model(inputs=[model.inputs], outputs=[output])
-    # result_model.summary()
+    return result_model
+
+def create_sequence_model(input_shape, path_to_weights_AffectNet):
+    model=create_AffectNet_model(input_shape[-3:])
+    model.load_weights(path_to_weights_AffectNet)
+    tmp_model=tf.keras.Model(inputs=model.inputs, outputs=[model.layers[-2].output])
+    number_embeddings = 1024
+    input_values=tf.keras.Input(shape=input_shape)
+    input_mask=tf.keras.Input(shape=(input_shape[0], number_embeddings))
+    cnn=tf.keras.layers.TimeDistributed(tmp_model)(input_values)
+    multiply=tf.keras.layers.multiply([cnn, input_mask])
+    lstm_1=tf.keras.layers.LSTM(int(number_embeddings/2), return_sequences=True)(multiply)
+    lstm_2=tf.keras.layers.LSTM(int(number_embeddings/2), return_sequences=True)(lstm_1)
+    output=tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(1, activation='tanh'))(lstm_2)
+    result_model=tf.keras.Model(inputs=[input_values, input_mask], outputs=output)
     return result_model
 
 
