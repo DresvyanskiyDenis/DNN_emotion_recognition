@@ -120,7 +120,9 @@ def get_concatenated_predictions_for_database(path_to_database, model, label_typ
 
 def evaluate_mse_on_database(labels_and_predictions, label_types):
     predicted_columns=['prediction_'+x for x in label_types]
-    mse=mean_squared_error(labels_and_predictions[label_types], labels_and_predictions[predicted_columns])
+    mse=[]
+    for i in range(len(label_types)):
+        mse.append(mean_squared_error(labels_and_predictions[label_types[i]], labels_and_predictions[predicted_columns[i]]))
     return mse
 
 def evaluate_CCC_on_database(labels_and_predictions, label_types):
@@ -146,6 +148,12 @@ def evaluate_CCC_on_database(labels_and_predictions, label_types):
             CCC[idx_label]+=weights_for_CCC[idx_dataframe]*CCC_2_sequences_numpy(splited_dataframes[idx_dataframe][label_types[idx_label]],
                                                                                  splited_dataframes[idx_dataframe][predicted_columns[idx_label]])
     return CCC
+
+def evaluate_CCC_and_MSE_on_database(path_to_database, model, label_types):
+    labels_and_predictions=get_concatenated_predictions_for_database(path_to_database, model, label_types)
+    mse=evaluate_mse_on_database(labels_and_predictions, label_types)
+    CCC=evaluate_CCC_on_database(labels_and_predictions, label_types)
+    return [mse, CCC]
 
 def preprocess_data(data):
     data = data.astype('float32')
@@ -175,9 +183,16 @@ if __name__ == "__main__":
     path_SEWA = 'D:\\Databases\\Sequences\\SEWA\\'
     path_AffWild = 'D:\\Databases\\Sequences\\AffWild\\'
     train_paths=[path_RECOLA, path_SEMAINE, path_AffWild]
+    validation_path=path_SEWA
     path_to_save_best_model = 'best_model/'
     if not os.path.exists(path_to_save_best_model):
         os.mkdir(path_to_save_best_model)
+    path_to_save_stats='stats/'
+    if not os.path.exists(path_to_save_stats):
+        os.mkdir(path_to_save_stats)
+    path_to_save_tmp_model='tmp_model_weights/'
+    if not os.path.exists(path_to_save_stats):
+        os.mkdir(path_to_save_stats)
 
     AffectNet_embeddings_output_shape=1024
     sequence_length = 40
@@ -190,26 +205,40 @@ if __name__ == "__main__":
     epochs = 10
     batch_size = 2
     verbose = 1
-
+    best_result=-1 # CCC -1 is worst result
     train_loss=[]
     val_loss=[]
     # model
     path_to_weights_AffectNet = 'C:\\Users\\Dresvyanskiy\\Downloads\\weights_arousal_valence.h5'
     model=create_sequence_model(input_shape, path_to_weights_AffectNet)
-    model.compile(optimizer='Adam', loss=CCC_loss_tf)
+    model.compile(optimizer='Adam', loss=CCC_loss_tf, metrics=['mse', 'mae'])
     print(model.summary())
-    #evaluate_mse_on_database(path_RECOLA, model, ['arousal'])
-    labels_and_predictions=get_concatenated_predictions_for_database(path_RECOLA, model, labels_type)
-    res=evaluate_CCC_on_database(labels_and_predictions, labels_type)
     # train process
     for epoch in range(epochs):
         train_gen=train_generator(train_paths)
+        idx_batch=0
         for batch in train_gen:
             train_data, train_labels=batch
             train_data, train_mask, train_labels=preprocess_data_and_labels_for_train(train_data, train_labels, labels_type)
+            sum_loss=0
+            sum_idx=0
             for mini_batch_idx in range(0, train_data.shape[0], batch_size):
                 start=mini_batch_idx
                 end=mini_batch_idx+batch_size
                 train_history=model.train_on_batch([train_data[start:end], train_mask[start:end]], train_labels[start:end])
-                print(train_history)
-
+                train_loss.append(train_history)
+                sum_loss+=train_history[0]
+                sum_idx+=1
+            sum_loss/=sum_idx
+            print('epoch: %i, sub-epoch: %i, loss: %d '%(epoch, idx_batch, sum_loss))
+            # evaluate metrics on validation database
+            if idx_batch%40==0:
+                stats=evaluate_CCC_and_MSE_on_database(validation_path, model, labels_type)
+                val_loss.append(stats)
+                CCC_average_result=stats[1].mean()
+                if CCC_average_result> best_result:
+                    best_result=CCC_average_result
+                    model.save_weights(path_to_save_best_model+'weights.h5')
+                pd.DataFrame(train_loss).to_csv(path_to_save_stats+'train_loss.csv')
+                pd.DataFrame(val_loss).to_csv(path_to_save_stats + 'val_loss.csv')
+            idx_batch += 1 # go to next batch
