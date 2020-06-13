@@ -56,8 +56,19 @@ def load_image(path):
     img = np.array(img)  # image has been transposed into (height, width)
     return img
 
+def thin_labels_by_timestep(labels, common_timestep):
+    current_timestep = labels['timestep'].iloc[1] - labels['timestep'].iloc[0]
+    sum=current_timestep
+    idx=1
+    while sum<common_timestep:
+        sum+=current_timestep
+        idx+=1
+    result=labels.iloc[::idx]
+    return result
+
 def extract_deep_features_for_one_video(path_to_labels, path_to_data, model):
     labels=pd.read_csv(path_to_labels)
+    labels=thin_labels_by_timestep(labels, 0.08)
     deep_features=np.zeros(shape=(labels.shape[0], model.layers[-1].output.shape[1]), dtype='float32')
     for i in range(labels.shape[0]):
         if labels['frame'].iloc[i]!='NO_FACE':
