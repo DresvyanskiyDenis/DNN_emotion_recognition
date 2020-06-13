@@ -39,6 +39,10 @@ def extract_deep_feature(img, model):
     deep_features=model.predict(img)
     return deep_features.reshape((-1,))
 
+def preprocess_image(image):
+    image=image/255.
+    return image
+
 def load_image(path):
     img = Image.open(path)
     img = img.convert('RGB')
@@ -52,6 +56,7 @@ def extract_deep_features_for_one_video(path_to_labels, path_to_data, model):
         if labels['frame'].iloc[i]!='NO_FACE':
             try:
                 img=load_image(path_to_data+labels['frame'].iloc[i].split('.')[0]+'.png')
+                img=preprocess_image(img)
             except Exception:
                 continue
             img=img[np.newaxis,...]
