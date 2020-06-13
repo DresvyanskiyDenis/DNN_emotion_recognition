@@ -1,3 +1,4 @@
+import time
 
 import numpy as np
 import pandas as pd
@@ -90,18 +91,20 @@ def extract_and_save_deep_features_for_database(path_to_database, model, path_to
     path_to_data=path_to_database+'data\\'
     filenames_labels=os.listdir(path_to_labels)
     for filename_label in filenames_labels:
+        start=time.time()
         path_to_folder_video=path_to_data+filename_label.split('.')[0]+'\\'
         deep_features, labels=extract_deep_features_for_one_video(path_to_labels+filename_label,
                                                                   path_to_folder_video, model)
         np.save(path_to_save+filename_label.split('.')[0]+'_deep_features',arr=deep_features)
         labels.to_csv(path_to_save+filename_label, index=False)
+        print(filename_label+' processed...   time:', time.time()-start)
 
 
 
 if __name__ == "__main__":
     path_to_database='D:\\Databases\\RECOLA\\processed\\'
-    path_to_save='D:\\Databases\\tmp\\'
-    path_to_weights_model='C:\\Users\\Dresvyanskiy\\Downloads\\weights_arousal_valence.h5'
+    path_to_save='D:\\Databases\\tmp\\RECOLA\\'
+    path_to_weights_model='C:\\Users\\Dresvyanskiy\\Downloads\\weights_arousal.h5'
     tmp_model=create_AffectNet_model_tmp((224,224,3))
     tmp_model.load_weights(path_to_weights_model)
     model=create_cutted_model(tmp_model)
