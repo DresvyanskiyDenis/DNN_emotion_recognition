@@ -8,24 +8,31 @@ import os
 from sklearn.preprocessing import StandardScaler
 
 
-def create_Xception(input_shape):
-  model=tf.keras.applications.Xception(include_top=False, weights='imagenet', input_shape=input_shape)
+def create_resnet50_applications(input_shape):
+  model=tf.keras.applications.ResNet50(include_top=False, weights='imagenet', input_shape=input_shape)
   return model
 
 def create_AffectNet_model_tmp(input_shape_for_ResNet):
-    model=create_Xception(input_shape_for_ResNet)
+    model=create_resnet50_applications(input_shape_for_ResNet)
     pooling=tf.keras.layers.GlobalAveragePooling2D()(model.output)
     #dropout_0=tf.keras.layers.Dropout(0.3)(pooling)
     dense_1=tf.keras.layers.Dense(1024, activation=None,
             kernel_initializer='orthogonal',
-            kernel_regularizer=tf.keras.regularizers.l2(0.001),
+            kernel_regularizer=tf.keras.regularizers.l2(0.0001),
             activity_regularizer=tf.keras.regularizers.l1(0.0001),
             use_bias=False)(pooling)
     dropout_1=tf.keras.layers.Dropout(0.3)(dense_1)
     activation_1=tf.keras.layers.LeakyReLU(alpha=0.1)(dropout_1)
-
-    output= tf.keras.layers.Dense(2, activation='tanh',
-            kernel_initializer='orthogonal',use_bias=False)(activation_1)
+    dense_2=tf.keras.layers.Dense(256, activation=None,
+            kernel_initializer='orthogonal',
+            activity_regularizer=tf.keras.regularizers.l1(0.0001),
+            kernel_regularizer=tf.keras.regularizers.l2(0.0001),
+            use_bias=False)(activation_1)
+    dropout_2=tf.keras.layers.Dropout(0.3)(dense_2)
+    activation_2=tf.keras.layers.LeakyReLU(alpha=0.1)(dropout_2)
+    output= tf.keras.layers.Dense(1, activation='tanh',
+            kernel_regularizer=tf.keras.regularizers.l2(0.0001),
+            kernel_initializer='orthogonal', use_bias=False)(activation_2)
     result_model=tf.keras.Model(inputs=[model.inputs], outputs=[output])
     #result_model.summary()
     return result_model
