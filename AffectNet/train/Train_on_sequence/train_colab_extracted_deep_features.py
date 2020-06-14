@@ -140,7 +140,7 @@ def mask_NO_FACE_instances(data, labels):
     data=data.astype('float32')
     return data, labels
 
-def data_generator(paths, window_size, window_step, amount_in_one_batch, need_permutation=True):
+def load_and_preprocess_all_data(paths, window_size, window_step):
     paths_to_data = np.array([], dtype='str')
     paths_to_labels = np.array([], dtype='str')
     for database_path in paths:
@@ -150,27 +150,29 @@ def data_generator(paths, window_size, window_step, amount_in_one_batch, need_pe
         paths_to_data = np.append(paths_to_data, data_files)
         paths_to_labels = np.append(paths_to_labels, labels_files)
 
-    result_data=[]
-    result_labels=[]
+    result_data = []
+    result_labels = []
     for i in range(paths_to_data.shape[0]):
         # read data and labels
         print('loaded:', i, 'remains:', paths_to_data.shape[0])
-        data=np.load(paths_to_data[i])
-        labels=pd.read_csv(paths_to_labels[i])
-        data, labels=mask_NO_FACE_instances(data, labels)
-        cutted_data, cutted_labels=cut_file_on_sequences(data, labels, window_size, window_step)
-        if cutted_data==None:
+        data = np.load(paths_to_data[i])
+        labels = pd.read_csv(paths_to_labels[i])
+        data, labels = mask_NO_FACE_instances(data, labels)
+        cutted_data, cutted_labels = cut_file_on_sequences(data, labels, window_size, window_step)
+        if cutted_data == None:
             continue
-        result_data=result_data+cutted_data
-        result_labels=result_labels+cutted_labels
-    while True:
-        # shuffle it
-        if need_permutation:
-            zipped = list(zip(result_data, result_labels))
-            random.shuffle(zipped)
-            result_data, result_labels = zip(*zipped)
-        for i in range(0, len(result_data), amount_in_one_batch):
-            yield result_data[i:(i+amount_in_one_batch)], result_labels[i:(i+amount_in_one_batch)]
+        result_data = result_data + cutted_data
+        result_labels = result_labels + cutted_labels
+    return result_data, result_labels
+
+def data_generator(data, labels, amount_in_one_batch, need_permutation=True):
+    # shuffle it
+    if need_permutation:
+        zipped = list(zip(data, labels))
+        random.shuffle(zipped)
+        data, labels = zip(*zipped)
+    for i in range(0, len(data), amount_in_one_batch):
+        yield data[i:(i+amount_in_one_batch)], labels[i:(i+amount_in_one_batch)]
 
 
 def prepare_data_for_training(data, labels, label_type):
@@ -183,8 +185,8 @@ def prepare_data_for_training(data, labels, label_type):
     return result_data, result_labels
 
 def make_predictions_on_database(path_to_database, model, label_type, window_size, window_step):
-    gen = data_generator(paths=[path_to_database], window_size=window_size, window_step=window_step,
-                         amount_in_one_batch=16, need_permutation=False)
+    data_for_gen, labels_for_gen=load_and_preprocess_all_data(paths=[path_to_database], window_size=window_size, window_step=window_step)
+    gen = data_generator(data_for_gen, labels_for_gen, amount_in_one_batch=64, need_permutation=False)
     real_labels = []
     for batch in gen:
         data, labels = batch
@@ -280,8 +282,8 @@ if __name__ == "__main__":
 
     #stats = evaluate_CCC_and_MSE_on_database(validation_path, model, labels_type, window_size, window_step)
     # train process
-    train_gen = data_generator(paths=train_paths, window_size=window_size,
-                               window_step=window_step, amount_in_one_batch=batch_size)
+    data_for_gen_train, labels_for_gen_train=load_and_preprocess_all_data(paths=train_paths, window_size=window_size, window_step=window_step,)
+    train_gen = data_generator(data_for_gen_train, labels_for_gen_train, amount_in_one_batch=batch_size)
     for epoch in range(epochs):
         if (epochs+1)%30==0:
             lr=lr/5.
