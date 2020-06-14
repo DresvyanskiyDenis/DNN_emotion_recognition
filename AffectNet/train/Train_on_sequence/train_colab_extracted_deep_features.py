@@ -11,7 +11,7 @@ from sklearn.metrics import mean_squared_error
 def create_rnn_model(input_shape):
     input=tf.keras.layers.Input(input_shape)
     mask=tf.keras.layers.Masking(mask_value=0.0, input_shape=input_shape)(input)
-    lstm_1=tf.keras.layers.LSTM(256, kernel_initializer='orthogonal', return_sequences=True,
+    lstm_1=tf.keras.layers.LSTM(512, kernel_initializer='orthogonal', return_sequences=True,
                                    )(mask)
     dropout_1=tf.keras.layers.Dropout(0.3)(lstm_1)
     lstm_2=tf.keras.layers.LSTM(512, kernel_initializer='orthogonal', return_sequences=True,
@@ -109,6 +109,9 @@ def how_many_windows_do_i_need(length, window_size, window_step):
     return how_many_do_you_need
 
 def cut_file_on_sequences(data, labels, window_size, window_step):
+    # if file less then window size
+    if data.shape[0]<window_size:
+        return None, None
     num_windows=how_many_windows_do_i_need(labels.shape[0], window_size, window_step)
     result_data=[]
     result_labels=[]
@@ -151,19 +154,23 @@ def data_generator(paths, window_size, window_step, amount_in_one_batch, need_pe
     result_labels=[]
     for i in range(paths_to_data.shape[0]):
         # read data and labels
+        print('loaded:', i, 'remains:', paths_to_data.shape[0])
         data=np.load(paths_to_data[i])
         labels=pd.read_csv(paths_to_labels[i])
         data, labels=mask_NO_FACE_instances(data, labels)
         cutted_data, cutted_labels=cut_file_on_sequences(data, labels, window_size, window_step)
+        if cutted_data==None:
+            continue
         result_data=result_data+cutted_data
         result_labels=result_labels+cutted_labels
-    # shuffle it
-    if need_permutation:
-        zipped = list(zip(result_data, result_labels))
-        random.shuffle(zipped)
-        result_data, result_labels = zip(*zipped)
-    for i in range(0, len(result_data), amount_in_one_batch):
-        yield result_data[i:(i+amount_in_one_batch)], result_labels[i:(i+amount_in_one_batch)]
+    while True:
+        # shuffle it
+        if need_permutation:
+            zipped = list(zip(result_data, result_labels))
+            random.shuffle(zipped)
+            result_data, result_labels = zip(*zipped)
+        for i in range(0, len(result_data), amount_in_one_batch):
+            yield result_data[i:(i+amount_in_one_batch)], result_labels[i:(i+amount_in_one_batch)]
 
 
 def prepare_data_for_training(data, labels, label_type):
@@ -237,14 +244,12 @@ def evaluate_CCC_and_MSE_on_database(path_to_database, model, label_type, window
 
 if __name__ == "__main__":
     # train params
-    path_RECOLA = 'D:\\Databases\\Sequences\\RECOLA\\'
-    path_SEMAINE = 'D:\\Databases\\Sequences\\SEMAINE\\'
-    path_SEWA = 'D:\\Databases\\Sequences\\SEWA\\'
-    path_AffWild = 'D:\\Databases\\Sequences\\AffWild\\'
-    path_train='C:\\Users\\Dresvyanskiy\\Downloads\\RECOLA_train\\'
-    path_test = 'C:\\Users\\Dresvyanskiy\\Downloads\\SEMAINE_test\\'
-    train_paths=[path_train]
-    validation_path='C:\\Users\\Dresvyanskiy\\Downloads\\RECOLA_test\\'
+    path_RECOLA = 'D:\\Downloads\\Databases\\Databases\\RECOLA\\'
+    path_SEMAINE = 'D:\\Downloads\\Databases\\Databases\\SEMAINE\\'
+    path_SEWA = 'D:\\Downloads\\Databases\\Databases\\SEWA\\'
+    path_AffWild = 'D:\\Downloads\\Databases\\Databases\\AffWild\\'
+    train_paths=[path_SEMAINE,path_SEWA,path_AffWild]
+    validation_path=path_RECOLA
     path_to_save_best_model = 'best_model/'
     if not os.path.exists(path_to_save_best_model):
         os.mkdir(path_to_save_best_model)
@@ -255,7 +260,7 @@ if __name__ == "__main__":
     if not os.path.exists(path_to_save_stats):
         os.mkdir(path_to_save_stats)
 
-    window_size=600
+    window_size=300
     window_step=100
     sequence_length = 256
     input_shape = (window_size, sequence_length)
@@ -269,19 +274,20 @@ if __name__ == "__main__":
     # model
     model=create_rnn_model(input_shape)
     lr=0.001
-    optimizer=tf.keras.optimizers.RMSprop(learning_rate=lr)
+    optimizer=tf.keras.optimizers.Adam(learning_rate=lr)
     model.compile(optimizer=optimizer, loss=CCC_loss_dima, metrics=['mse', 'mae'])
     print(model.summary())
 
     #stats = evaluate_CCC_and_MSE_on_database(validation_path, model, labels_type, window_size, window_step)
     # train process
+    train_gen = data_generator(paths=train_paths, window_size=window_size,
+                               window_step=window_step, amount_in_one_batch=batch_size)
     for epoch in range(epochs):
         if (epochs+1)%30==0:
             lr=lr/5.
-            optimizer = tf.keras.optimizers.RMSprop(learning_rate=lr)
+            optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
             model.compile(optimizer=optimizer, loss=CCC_loss_dima, metrics=['mse', 'mae'])
-        train_gen=data_generator(paths=train_paths, window_size=window_size,
-                                 window_step=window_step, amount_in_one_batch=batch_size)
+
         idx_batch=0
         sum_epoch_loss=0
         for batch in train_gen:
@@ -294,7 +300,7 @@ if __name__ == "__main__":
             sum_epoch_loss=sum_epoch_loss+train_history[0]
             idx_batch += 1 # go to next batch
         print('average loss on epoch:',sum_epoch_loss/idx_batch)
-        if epoch>2:
+        if epoch>1:
             stats = evaluate_CCC_and_MSE_on_database(validation_path, model, labels_type, window_size, window_step)
             val_loss.append(stats)
             CCC_average_result = stats[0].mean()
