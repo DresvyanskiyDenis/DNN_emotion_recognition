@@ -1,3 +1,4 @@
+import gc
 import time
 
 import numpy as np
@@ -31,7 +32,7 @@ def create_AffectNet_model_tmp(input_shape_for_ResNet):
             use_bias=False)(activation_1)
     dropout_2=tf.keras.layers.Dropout(0.3)(dense_2)
     activation_2=tf.keras.layers.LeakyReLU(alpha=0.1)(dropout_2)
-    output= tf.keras.layers.Dense(1, activation='tanh',
+    output= tf.keras.layers.Dense(2, activation='tanh',
             kernel_regularizer=tf.keras.regularizers.l2(0.0001),
             kernel_initializer='orthogonal', use_bias=False)(activation_2)
     result_model=tf.keras.Model(inputs=[model.inputs], outputs=[output])
@@ -40,7 +41,7 @@ def create_AffectNet_model_tmp(input_shape_for_ResNet):
 
 def create_cutted_model(model):
     deep_features_layer=model.layers[-2].output
-    new_model = tf.keras.Model(inputs=[tmp_model.input], outputs=[deep_features_layer])
+    new_model = tf.keras.Model(inputs=[model.input], outputs=[deep_features_layer])
     return new_model
 
 def extract_deep_feature(img, model):
@@ -81,10 +82,13 @@ def extract_deep_features_for_one_video(path_to_labels, path_to_data, model):
             img=img[np.newaxis,...]
             extracted_deep=extract_deep_feature(img, model)
             deep_features[i]=extracted_deep
+            del img
+        if i%500==0:
+            gc.collect()
     # normalization
     scaler=StandardScaler()
     deep_features=scaler.fit_transform(deep_features)
-    return deep_features.astype('float16'), labels
+    return deep_features.astype('float32'), labels
 
 def extract_and_save_deep_features_for_database(path_to_database, model, path_to_save):
     path_to_labels=path_to_database+'final_labels\\'
@@ -98,13 +102,15 @@ def extract_and_save_deep_features_for_database(path_to_database, model, path_to
         np.save(path_to_save+filename_label.split('.')[0]+'_deep_features',arr=deep_features)
         labels.to_csv(path_to_save+filename_label, index=False)
         print(filename_label+' processed...   time:', time.time()-start)
-
+        del deep_features
+        del labels
+        gc.collect()
 
 
 if __name__ == "__main__":
-    path_to_database='D:\\Databases\\RECOLA\\processed\\'
-    path_to_save='D:\\Databases\\tmp\\RECOLA\\'
-    path_to_weights_model='C:\\Users\\Dresvyanskiy\\Downloads\\weights_arousal.h5'
+    path_to_database='D:\\Databases\\SEWA\\processed\\'
+    path_to_save='D:\\Databases\\tmp\\SEWA\\'
+    path_to_weights_model='C:\\Users\\Dresvyanskiy\\Downloads\\weights_arousal_valence.h5'
     tmp_model=create_AffectNet_model_tmp((224,224,3))
     tmp_model.load_weights(path_to_weights_model)
     model=create_cutted_model(tmp_model)
