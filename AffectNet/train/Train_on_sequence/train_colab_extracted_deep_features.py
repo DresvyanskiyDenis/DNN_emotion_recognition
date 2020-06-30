@@ -10,6 +10,13 @@ from sklearn.metrics import mean_squared_error
 
 
 def create_rnn_model(input_shape):
+    """ This function creates rnn API Model
+        by keras lib
+
+    :param input_shape: input shape with type tuple
+    :return: keras RNN model
+    """
+
     input = tf.keras.layers.Input(input_shape)
     mask = tf.keras.layers.Masking(mask_value=0.0)(input)
     # noise=tf.keras.layers.GaussianNoise(0.1)(mask)
@@ -114,6 +121,14 @@ def calc_scores(x, y):
 
 
 def CCC_2_sequences_numpy(y_true, y_pred):
+    """ This function calculated Concordance
+        Correlation coefficient (CCC) on 2
+        numpy arrays with shapes (sequence_length,)
+
+    :param y_true: real labels
+    :param y_pred: predicted labels
+    :return: Concordance correlation coefficient between 2 arrays
+    """
     cor = np.corrcoef(y_true, y_pred)[0][1]
     mean_true = np.mean(y_true)
     mean_pred = np.mean(y_pred)
@@ -125,7 +140,6 @@ def CCC_2_sequences_numpy(y_true, y_pred):
     sd_pred = np.std(y_pred)
     covar = ((y_true - mean_true) * (y_pred - mean_pred)).mean()
     numerator = 2 * covar
-    print(numerator)
 
     denominator = var_true + var_pred + (mean_true - mean_pred) ** 2 + 1e-10
 
@@ -133,6 +147,22 @@ def CCC_2_sequences_numpy(y_true, y_pred):
 
 
 def how_many_windows_do_i_need(length, window_size, window_step):
+    """ This function calculates how many windows do you need
+        with corresponding length of sequence, window_size and
+        window_step
+        for example, if your sequence length=10, window_size=4 and
+        window_step=2 then:
+        |_ _ _ _| _ _ _ _ _ _
+        _ _ |_ _ _ _| _ _ _ _
+        _ _ _ _ |_ _ _ _| _ _
+        _ _ _ _ _ _ |_ _ _ _|
+        ==> you need 4 windows with this parameters
+
+    :param length: length of sequence
+    :param window_size: size of window
+    :param window_step:
+    :return:
+    """
     start = 0
     how_many_do_you_need = 0
     while True:
@@ -145,6 +175,22 @@ def how_many_windows_do_i_need(length, window_size, window_step):
 
 
 def cut_file_on_sequences(data, labels, window_size, window_step):
+    """This function cuts data and labels on sequences with corresponding params
+        for example, if your file length=10, window_size=4 and
+        window_step=2 then:
+        |_ _ _ _| _ _ _ _ _ _
+        _ _ |_ _ _ _| _ _ _ _
+        _ _ _ _ |_ _ _ _| _ _
+        _ _ _ _ _ _ |_ _ _ _|
+        ==> your data and labels will cutted on 4 parts
+
+    :param data: numpy array with shape (data_length,)
+    :param labels: numpy array with shape (labels_length,). labels_length must equal data_length
+    :param window_size: size of window (length of windows, on which data will cutted)
+    :param window_step: step of window
+    :return: 2 lists of cutted data and labels (e.g. result_data is list of cutted windows with data)
+             every element of list has shape (window_size,)
+    """
     # if file less then window size
     if data.shape[0] < window_size:
         return None, None
@@ -171,6 +217,13 @@ def cut_file_on_sequences(data, labels, window_size, window_step):
 
 
 def mask_NO_FACE_instances(data, labels):
+    """This function mask data (make it all zeros) with corresponding labels='NO_FACE'
+
+    :param data:
+    :param labels:
+    :return: numpy arrays
+             masked data and just the same labels
+    """
     for i in range(labels.shape[0]):
         if labels['frame'].iloc[i] == 'NO_FACE':
             data[i] = np.zeros(shape=(data.shape[-1]))
@@ -178,7 +231,16 @@ def mask_NO_FACE_instances(data, labels):
     return data, labels
 
 
-def load_and_preprocess_all_data(paths, window_size, window_step, scaler=None):
+def load_and_preprocess_all_data(paths, window_size, window_step):
+    """This function load data with corresponding paths (list of paths)
+       and then preprocess it for further training/testing
+
+    :param paths: list of paths to filenames with data and labels
+    :param window_size: size of window (for cutting data and labels on windows)
+    :param window_step: step of window
+    :return: lists of preprocessed data and labels (sorted on batches)
+
+    """
     paths_to_data = np.array([], dtype='str')
     paths_to_labels = np.array([], dtype='str')
     for database_path in paths:
@@ -201,10 +263,19 @@ def load_and_preprocess_all_data(paths, window_size, window_step, scaler=None):
             continue
         result_data = result_data + cutted_data
         result_labels = result_labels + cutted_labels
-    return result_data, result_labels, scaler
+    return result_data, result_labels
 
 
 def data_generator(data, labels, amount_in_one_batch, need_permutation=True):
+    """Generator, which give batches of data
+
+    :param data: list of cutted data
+    :param labels: list of cutted labels
+    :param amount_in_one_batch: size of batch
+    :param need_permutation: Do we need shuffle data or not
+    :return yield one batch of data and labels
+            type of returned data and labels is list
+    """
     # shuffle it
     if need_permutation:
         zipped = list(zip(data, labels))
@@ -215,6 +286,15 @@ def data_generator(data, labels, amount_in_one_batch, need_permutation=True):
 
 
 def prepare_data_for_training(data, labels, label_type):
+    """This function are preparing data and labels for training
+       converting data in numpy array-> converting needed labels in numpy array
+       (with corresponding label_type, arousal or valence)-> shuffle data and labels
+
+    :param data: type - list, each element of list - numpy array
+    :param labels: type - list, each element of list - DataFrame
+    :param label_type: string, arousal or valence
+    :return: prepared data and labels for training/testing on keras model
+    """
     result_data = np.array(data, dtype='float32')
     result_labels = np.zeros(shape=(len(labels), result_data.shape[-2], 1))
     for i in range(len(labels)):
@@ -225,6 +305,15 @@ def prepare_data_for_training(data, labels, label_type):
 
 
 def make_predictions_on_database(path_to_database, model, label_type, window_size, window_step):
+    """This function makes predictions on database with corresponding model
+
+    :param path_to_database: string
+    :param model: keras model
+    :param label_type: string, 'arousal' or 'valence'
+    :param window_size: size of window (for cutting data on windows)
+    :param window_step: step of window
+    :return: DataFrame, predictions grouped by columns 'frame' and 'timestep'
+    """
     data_for_gen, labels_for_gen = load_and_preprocess_all_data(paths=[path_to_database], window_size=window_size,
                                                                 window_step=window_step)
     gen = data_generator(data_for_gen, labels_for_gen, amount_in_one_batch=64, need_permutation=False)
@@ -253,6 +342,21 @@ def make_predictions_on_database(path_to_database, model, label_type, window_siz
 
 
 def evaluate_CCC_on_database(labels_and_predictions, label_type, mode='weights'):
+    """This fucntion calculates Concordance Correlation Coefficient (CCC) on
+       corresponding predictions and real labels
+
+    :param labels_and_predictions: DataFrame, which is formed by predictions and real labels
+                                   It should be sorted by column 'timestep'
+    :param label_type: string, 'arousal' or 'valence'
+    :param mode: if mode=='weights' then function will calculate weighted CCC ()
+                 length of each instance (length of video) of database influences on weights
+                 e. g. if database has 3 videos with corresponding lengths: 100, 200, 400
+                 then weights for each instance will: 1/7, 2/7, 4/7
+                 and CCC will calculates as: CCC[1_instance]*1/7+CCC[2_instance]*2/7+CCC[3_instance]*4/7
+
+                 else (if mode!='weights') CCC will calculates as averaging of sum of all instance CCCs.
+    :return: the value of CCC on database
+    """
     if mode == 'weights':
         predicted_columns = ['prediction_' + x for x in label_type]
         # spliting procedure
@@ -283,6 +387,13 @@ def evaluate_CCC_on_database(labels_and_predictions, label_type, mode='weights')
 
 
 def evaluate_mse_on_database(labels_and_predictions, label_types):
+    """This function evaluates Mean Squared Error (mse) on corresponding predictions and real labels
+
+    :param labels_and_predictions: DataFrame, which is formed by predictions and real labels
+                                   It should be sorted by column 'timestep'
+    :param label_types: string, 'arousal' or 'valence'
+    :return: the value of calculated mse
+    """
     predicted_columns = ['prediction_' + x for x in label_types]
     mse = []
     for i in range(len(label_types)):
@@ -292,6 +403,16 @@ def evaluate_mse_on_database(labels_and_predictions, label_types):
 
 
 def evaluate_CCC_and_MSE_on_database(path_to_database, model, label_type, window_size, window_step):
+    """This function evaluate Concordance Correlation Coefficient (CCC) and Mean Squared Error (mse)
+       on database specified by path (database will downloaded by this path)
+
+    :param path_to_database: string
+    :param model: keras model
+    :param label_type: string, 'arousal' or 'valence'
+    :param window_size: size of window (for cutting data on windows)
+    :param window_step: step of window
+    :return: evaluated weighted CCC, averaged CCC and mse
+    """
     labels_and_predictions = make_predictions_on_database(path_to_database, model, label_type, window_size, window_step)
     mse = evaluate_mse_on_database(labels_and_predictions, label_type)
     CCC = evaluate_CCC_on_database(labels_and_predictions, label_type)
