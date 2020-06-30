@@ -156,13 +156,14 @@ def evaluate_CCC_and_MSE_on_database(path_to_database, model, label_types):
     return [mse, CCC]
 
 def preprocess_data(data):
-    data = data.astype('float32')
+    data = data.astype('float16')
     data = data / 255.
     return data
 
 
 def preprocess_data_and_labels_for_train(data, labels, label_type):
     mask_for_data=np.ones(shape=(data.shape[0], data.shape[1],AffectNet_embeddings_output_shape))
+    mask_for_data=mask_for_data.astype('int8')
     data = preprocess_data(data)
     result_labels = np.zeros(shape=data.shape[:2] + (len(label_type),))
     for i in range(result_labels.shape[0]):
@@ -183,7 +184,7 @@ if __name__ == "__main__":
     path_SEWA = 'D:\\Databases\\Sequences\\SEWA\\'
     path_AffWild = 'D:\\Databases\\Sequences\\AffWild\\'
     train_paths=[path_RECOLA, path_SEMAINE, path_AffWild]
-    validation_path=path_SEWA
+    validation_path=path_RECOLA
     path_to_save_best_model = 'best_model/'
     if not os.path.exists(path_to_save_best_model):
         os.mkdir(path_to_save_best_model)
@@ -213,6 +214,7 @@ if __name__ == "__main__":
     model=create_sequence_model(input_shape, path_to_weights_AffectNet)
     model.compile(optimizer='Adam', loss=CCC_loss_tf, metrics=['mse', 'mae'])
     print(model.summary())
+    stats = evaluate_CCC_and_MSE_on_database(validation_path, model, labels_type)
     # train process
     for epoch in range(epochs):
         train_gen=train_generator(train_paths)
