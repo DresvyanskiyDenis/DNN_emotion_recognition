@@ -13,7 +13,7 @@ def create_rnn_model(input_shape):
     """ This function creates rnn API Model
         by keras lib
 
-    :param input_shape: input shape with type tuple
+    :param input_shape: tuple, input shape for keras model
     :return: keras RNN model
     """
 
@@ -125,9 +125,9 @@ def CCC_2_sequences_numpy(y_true, y_pred):
         Correlation coefficient (CCC) on 2
         numpy arrays with shapes (sequence_length,)
 
-    :param y_true: real labels
-    :param y_pred: predicted labels
-    :return: Concordance correlation coefficient between 2 arrays
+    :param y_true: ndarray, real labels
+    :param y_pred: ndarray, predicted labels
+    :return: float, Concordance correlation coefficient between 2 arrays
     """
     cor = np.corrcoef(y_true, y_pred)[0][1]
     mean_true = np.mean(y_true)
@@ -158,10 +158,10 @@ def how_many_windows_do_i_need(length, window_size, window_step):
         _ _ _ _ _ _ |_ _ _ _|
         ==> you need 4 windows with this parameters
 
-    :param length: length of sequence
-    :param window_size: size of window
-    :param window_step:
-    :return:
+    :param length: int, length of sequence
+    :param window_size: int, size of window
+    :param window_step: int
+    :return: float, amount of windows for data cutting
     """
     start = 0
     how_many_do_you_need = 0
@@ -184,10 +184,10 @@ def cut_file_on_sequences(data, labels, window_size, window_step):
         _ _ _ _ _ _ |_ _ _ _|
         ==> your data and labels will cutted on 4 parts
 
-    :param data: numpy array with shape (data_length,)
-    :param labels: numpy array with shape (labels_length,). labels_length must equal data_length
-    :param window_size: size of window (length of windows, on which data will cutted)
-    :param window_step: step of window
+    :param data: ndarray, shape (data_length,)
+    :param labels: ndarray, shape (labels_length,). labels_length must equal data_length
+    :param window_size: int, size of window (length of windows, on which data will cutted)
+    :param window_step: int step of window
     :return: 2 lists of cutted data and labels (e.g. result_data is list of cutted windows with data)
              every element of list has shape (window_size,)
     """
@@ -219,8 +219,8 @@ def cut_file_on_sequences(data, labels, window_size, window_step):
 def mask_NO_FACE_instances(data, labels):
     """This function mask data (make it all zeros) with corresponding labels='NO_FACE'
 
-    :param data:
-    :param labels:
+    :param data: ndarray
+    :param labels: DataFrame
     :return: numpy arrays
              masked data and just the same labels
     """
@@ -235,9 +235,9 @@ def load_and_preprocess_all_data(paths, window_size, window_step):
     """This function load data with corresponding paths (list of paths)
        and then preprocess it for further training/testing
 
-    :param paths: list of paths to filenames with data and labels
-    :param window_size: size of window (for cutting data and labels on windows)
-    :param window_step: step of window
+    :param paths: list of strings, list of paths to filenames with data and labels
+    :param window_size: int, size of window (for cutting data and labels on windows)
+    :param window_step: int, step of window
     :return: lists of preprocessed data and labels (sorted on batches)
 
     """
@@ -269,10 +269,10 @@ def load_and_preprocess_all_data(paths, window_size, window_step):
 def data_generator(data, labels, amount_in_one_batch, need_permutation=True):
     """Generator, which give batches of data
 
-    :param data: list of cutted data
-    :param labels: list of cutted labels
-    :param amount_in_one_batch: size of batch
-    :param need_permutation: Do we need shuffle data or not
+    :param data: list of ndarrays, list of cutted data
+    :param labels: list of DataFrames, list of cutted labels
+    :param amount_in_one_batch: int, size of batch
+    :param need_permutation: boolean, Do we need shuffle data or not
     :return yield one batch of data and labels
             type of returned data and labels is list
     """
@@ -290,8 +290,8 @@ def prepare_data_for_training(data, labels, label_type):
        converting data in numpy array-> converting needed labels in numpy array
        (with corresponding label_type, arousal or valence)-> shuffle data and labels
 
-    :param data: type - list, each element of list - numpy array
-    :param labels: type - list, each element of list - DataFrame
+    :param data: list, each element of list - numpy array
+    :param labels: list, each element of list - DataFrame
     :param label_type: string, arousal or valence
     :return: prepared data and labels for training/testing on keras model
     """
@@ -342,7 +342,7 @@ def make_predictions_on_database(path_to_database, model, label_type, window_siz
 
 
 def evaluate_CCC_on_database(labels_and_predictions, label_type, mode='weights'):
-    """This fucntion calculates Concordance Correlation Coefficient (CCC) on
+    """This function calculates Concordance Correlation Coefficient (CCC) on
        corresponding predictions and real labels
 
     :param labels_and_predictions: DataFrame, which is formed by predictions and real labels
