@@ -231,7 +231,7 @@ def mask_NO_FACE_instances(data, labels):
     return data, labels
 
 
-def load_and_preprocess_all_data(paths, window_size, window_step):
+def load_and_preprocess_all_data(paths, window_size, window_step, need_scaling=True, scaler=None):
     """This function load data with corresponding paths (list of paths)
        and then preprocess it for further training/testing
 
@@ -250,20 +250,38 @@ def load_and_preprocess_all_data(paths, window_size, window_step):
         paths_to_data = np.append(paths_to_data, data_files)
         paths_to_labels = np.append(paths_to_labels, labels_files)
 
-    result_data = []
-    result_labels = []
+    total_data=[]
+    total_labels=[]
     for i in range(paths_to_data.shape[0]):
         # read data and labels
         # print('loaded:', i, 'remains:', paths_to_data.shape[0])
         data = np.load(paths_to_data[i])
         labels = pd.read_csv(paths_to_labels[i])
+        total_data=total_data+[data]
+        total_labels=total_labels+[labels]
+
+    # scaling
+    if need_scaling:
+        total_data, scaler=scale_data(total_data, scaler)
+
+    # cutting
+    result_data = []
+    result_labels = []
+    for i in range(len(total_data)):
+        # if detector does not detect face, replace line by zero line (because scaler substracted mean from zeros and
+        # divides it by variance, so, zeros became non-zeros)
+        data, labels= total_data[i], total_labels[i]
         data, labels = mask_NO_FACE_instances(data, labels)
+        # cut data on windows
         cutted_data, cutted_labels = cut_file_on_sequences(data, labels, window_size, window_step)
         if cutted_data == None:
             continue
         result_data = result_data + cutted_data
         result_labels = result_labels + cutted_labels
-    return result_data, result_labels
+    if need_scaling:
+        return result_data, result_labels, scaler
+    else:
+        return result_data, result_labels
 
 
 def data_generator(data, labels, amount_in_one_batch, need_permutation=True):
@@ -303,8 +321,34 @@ def prepare_data_for_training(data, labels, label_type):
     result_data, result_labels = result_data[permutation], result_labels[permutation]
     return result_data, result_labels
 
+def scale_data(data, scaler=None):
+    """This function scale data by sklearn.preprocessing.StandartScaler
+    :param data: list of ndarrays, data to scale
+    :param scaler: sklearn.preprocessing.StandartScaler or None,
+                   you can pass trained scaler, if you have
+    :return: list if ndarrays, sklearn.preprocessing.StandartScaler
+             scaled data and trained scaler
+    """
+    # transform to ndarray
+    sequence_length=data[0].shape[-1]
+    data_for_fit_scaler=np.zeros(shape=(0,sequence_length))
+    for i in range(len(data)):
+        data_for_fit_scaler=np.append(data_for_fit_scaler, np.array(data[i], dtype='float32'), axis=0)
+    # delete zero lines from array (all zeros means that face was not detected, so, it must not influence on scaling parameters)
+    data_for_fit_scaler=data_for_fit_scaler[~np.all(data_for_fit_scaler == 0, axis=1)]
+    if scaler==None:
+        scaler=StandardScaler()
+        scaler=scaler.fit(data_for_fit_scaler)
+        for i in range(len(data)):
+            data[i]=scaler.transform(data[i])
+        return data, scaler
+    else:
+        for i in range(len(data)):
+            data[i]=scaler.transform(data[i])
+        return data, scaler
 
-def make_predictions_on_database(path_to_database, model, label_type, window_size, window_step):
+
+def make_predictions_on_database(path_to_database, model, label_type, window_size, window_step, need_scaling=False, scaler=None):
     """This function makes predictions on database with corresponding model
 
     :param path_to_database: string
@@ -315,7 +359,8 @@ def make_predictions_on_database(path_to_database, model, label_type, window_siz
     :return: DataFrame, predictions grouped by columns 'frame' and 'timestep'
     """
     data_for_gen, labels_for_gen = load_and_preprocess_all_data(paths=[path_to_database], window_size=window_size,
-                                                                window_step=window_step)
+                                                                window_step=window_step, need_scaling=need_scaling,
+                                                                scaler=scaler)
     gen = data_generator(data_for_gen, labels_for_gen, amount_in_one_batch=64, need_permutation=False)
     real_labels = []
     for batch in gen:
@@ -402,7 +447,7 @@ def evaluate_mse_on_database(labels_and_predictions, label_types):
     return mse
 
 
-def evaluate_CCC_and_MSE_on_database(path_to_database, model, label_type, window_size, window_step):
+def evaluate_CCC_and_MSE_on_database(path_to_database, model, label_type, window_size, window_step, need_scaling=False, scaler=None):
     """This function evaluate Concordance Correlation Coefficient (CCC) and Mean Squared Error (mse)
        on database specified by path (database will downloaded by this path)
 
@@ -413,7 +458,8 @@ def evaluate_CCC_and_MSE_on_database(path_to_database, model, label_type, window
     :param window_step: step of window
     :return: evaluated weighted CCC, averaged CCC and mse
     """
-    labels_and_predictions = make_predictions_on_database(path_to_database, model, label_type, window_size, window_step)
+    labels_and_predictions = make_predictions_on_database(path_to_database, model, label_type, window_size, window_step,
+                                                          need_scaling=need_scaling, scaler=scaler)
     mse = evaluate_mse_on_database(labels_and_predictions, label_type)
     CCC = evaluate_CCC_on_database(labels_and_predictions, label_type)
     CCC_all = evaluate_CCC_on_database(labels_and_predictions, label_type, mode='another')
@@ -424,10 +470,10 @@ if __name__ == "__main__":
     # train params
     path_RECOLA = '/content/drive/My Drive/Databases/RECOLA/'
     path_SEMAINE = '/content/drive/My Drive/Databases/SEMAINE/'
-    path_SEWA = '/content/drive/My Drive/Databases/SEWA/'
+    path_SEWA = 'D:/Databases/deep_features_without_normalization/SEWA/'
     path_AffWild = '/content/drive/My Drive/Databases/AffWild/'
 
-    train_paths = [path_SEMAINE, path_RECOLA, path_AffWild]
+    train_paths = [path_SEWA]
     validation_path = path_SEWA
     path_to_save_best_model = 'best_model/'
     if not os.path.exists(path_to_save_best_model):
@@ -459,8 +505,8 @@ if __name__ == "__main__":
 
     # stats = evaluate_CCC_and_MSE_on_database(validation_path, model, labels_type, window_size, window_step)
     # train process
-    data_for_gen_train, labels_for_gen_train = load_and_preprocess_all_data(paths=train_paths, window_size=window_size,
-                                                                            window_step=window_step, )
+    data_for_gen_train, labels_for_gen_train, train_scaler = load_and_preprocess_all_data(paths=train_paths, window_size=window_size,
+                                                                            window_step=window_step, need_scaling=True, scaler=None)
     for epoch in range(epochs):
         if (epochs + 1) % 10 == 0:
             lr = lr / 3.
@@ -481,7 +527,8 @@ if __name__ == "__main__":
             idx_batch += 1  # go to next batch
         print('average loss on epoch:', sum_epoch_loss / idx_batch)
         if epoch > -1:
-            stats = evaluate_CCC_and_MSE_on_database(validation_path, model, labels_type, window_size, window_step)
+            stats = evaluate_CCC_and_MSE_on_database(validation_path, model, labels_type, window_size, window_step,
+                                                     need_scaling=True, scaler=train_scaler)
             val_loss.append(stats)
             CCC_average_result = stats[0].mean()
             if CCC_average_result > best_result:
