@@ -19,15 +19,13 @@ def create_rnn_model(input_shape):
 
     input = tf.keras.layers.Input(input_shape)
     mask = tf.keras.layers.Masking(mask_value=0.0)(input)
-    # noise=tf.keras.layers.GaussianNoise(0.1)(mask)
-    lstm_1 = tf.keras.layers.LSTM(256, kernel_initializer='orthogonal', return_sequences=True,
-                                  dropout=0.2, recurrent_dropout=0.2, recurrent_activation='sigmoid')(mask)
-    lstm_2 = tf.keras.layers.LSTM(256, kernel_initializer='orthogonal', return_sequences=True,
+    noise=tf.keras.layers.GaussianNoise(0.1)(mask)
+    lstm_1 = tf.keras.layers.LSTM(512, kernel_initializer='orthogonal', return_sequences=True,
+                                  dropout=0.2, recurrent_dropout=0.2, recurrent_activation='tanh')(noise)
+    lstm_2 = tf.keras.layers.LSTM(512, kernel_initializer='orthogonal', return_sequences=True,
                                   dropout=0.2, recurrent_dropout=0.2, recurrent_activation='tanh')(lstm_1)
-    lstm_3 = tf.keras.layers.LSTM(256, kernel_initializer='orthogonal', return_sequences=True,
-                                  dropout=0.2, recurrent_dropout=0.2, recurrent_activation='sigmoid')(lstm_2)
-    smooth = tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(32, activation='selu'))(lstm_3)
-    output = tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(1, activation='linear'))(smooth)
+    #smooth = tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(32, activation='linear'))(lstm_2)
+    output = tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(1, activation='linear'))(lstm_2)
     model = tf.keras.Model(inputs=[input], outputs=[output])
     return model
 
@@ -278,10 +276,7 @@ def load_and_preprocess_all_data(paths, window_size, window_step, need_scaling=T
             continue
         result_data = result_data + cutted_data
         result_labels = result_labels + cutted_labels
-    if need_scaling:
-        return result_data, result_labels, scaler
-    else:
-        return result_data, result_labels
+    return result_data, result_labels, scaler
 
 
 def data_generator(data, labels, amount_in_one_batch, need_permutation=True):
@@ -358,7 +353,7 @@ def make_predictions_on_database(path_to_database, model, label_type, window_siz
     :param window_step: step of window
     :return: DataFrame, predictions grouped by columns 'frame' and 'timestep'
     """
-    data_for_gen, labels_for_gen = load_and_preprocess_all_data(paths=[path_to_database], window_size=window_size,
+    data_for_gen, labels_for_gen, scaler = load_and_preprocess_all_data(paths=[path_to_database], window_size=window_size,
                                                                 window_step=window_step, need_scaling=need_scaling,
                                                                 scaler=scaler)
     gen = data_generator(data_for_gen, labels_for_gen, amount_in_one_batch=64, need_permutation=False)
@@ -427,7 +422,7 @@ def evaluate_CCC_on_database(labels_and_predictions, label_type, mode='weights')
         CCC = np.zeros((len(label_type), 3))
         for idx_label in range(len(label_type)):
             CCC[idx_label] = calc_scores(labels_and_predictions[label_type[idx_label]].values,
-                                         labels_and_predictions[predicted_columns[idx_label]].values)
+                                         labels_and_predictions[predicted_columns[idx_label]].values)[0]
         return CCC
 
 
@@ -468,12 +463,12 @@ def evaluate_CCC_and_MSE_on_database(path_to_database, model, label_type, window
 
 if __name__ == "__main__":
     # train params
-    path_RECOLA = '/content/drive/My Drive/Databases/RECOLA/'
-    path_SEMAINE = '/content/drive/My Drive/Databases/SEMAINE/'
-    path_SEWA = 'D:/Databases/deep_features_without_normalization/SEWA/'
-    path_AffWild = '/content/drive/My Drive/Databases/AffWild/'
+    path_RECOLA = '/content/drive/My Drive/Video_databases/Databases_without_normalization/RECOLA/'
+    path_SEMAINE = '/content/drive/My Drive/Video_databases/Databases_without_normalization/SEMAINE/'
+    path_SEWA = '/content/drive/My Drive/Video_databases/Databases_without_normalization/SEWA/'
+    path_AffWild = '/content/drive/My Drive/Video_databases/Databases_without_normalization/AffWild/'
 
-    train_paths = [path_SEWA]
+    train_paths = [path_RECOLA, path_SEMAINE, path_AffWild]
     validation_path = path_SEWA
     path_to_save_best_model = 'best_model/'
     if not os.path.exists(path_to_save_best_model):
@@ -485,11 +480,11 @@ if __name__ == "__main__":
     if not os.path.exists(path_to_save_stats):
         os.mkdir(path_to_save_stats)
 
-    window_size = 100
-    window_step = 40
+    window_size = 200
+    window_step = 80
     sequence_length = 256
     input_shape = (window_size, sequence_length)
-    labels_type = ['valence']
+    labels_type = ['arousal']
     epochs = 100
     batch_size = 256
     verbose = 1
@@ -508,7 +503,7 @@ if __name__ == "__main__":
     data_for_gen_train, labels_for_gen_train, train_scaler = load_and_preprocess_all_data(paths=train_paths, window_size=window_size,
                                                                             window_step=window_step, need_scaling=True, scaler=None)
     for epoch in range(epochs):
-        if (epochs + 1) % 10 == 0:
+        if (epochs + 1) % 5 == 0:
             lr = lr / 3.
             optimizer = tf.keras.optimizers.Nadam(learning_rate=lr)
             model.compile(optimizer=optimizer, loss=CCC_loss_dima, metrics=['mse', 'mae'])
